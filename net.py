@@ -22,7 +22,7 @@ def create_dense_network(dimensions, input_var):
     print ('Hidden Layer:')
 
     network = lasagne.layers.DenseLayer(network, 
-                                        num_units=2048,
+                                        num_units=4096,
                                         nonlinearity=lasagne.nonlinearities.rectify)
     network = lasagne.layers.DropoutLayer(network,p=0.5)
     print ' ',lasagne.layers.get_output_shape(network)
@@ -59,7 +59,7 @@ def create_trainer(network,input_var,y):
     '''
     print ("Creating Trainer...")
     out = lasagne.layers.get_output(network)                        #get network output
-    params = lasagne.layers.get_all_params(network, trainable=True) #get all parameters from network
+    params = lasagne.layers.get_all_params(network, trainable=True) #get all trainable parameters from network
     cost = T.nnet.categorical_crossentropy(out, y).mean()           #calculate a loss function which has to be a scalar
     updates = lasagne.updates.adam(cost,
                                     params,
