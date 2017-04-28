@@ -4,6 +4,7 @@ import lasagne
 import pandas as pd
 import numpy as np
 import time
+import matplotlib.pyplot as plt
 
 def create_dense_network(dimensions, input_var):
     '''
@@ -146,7 +147,7 @@ def main():
                     train_accuracy=[],
                     validation_error=[],
                     validation_accuracy=[])
-
+    plt.ion()
     for epoch in range(epochs):
         epoch_time = time.time()
         print ("--> Epoch: %d | Epochs left %d"%(epoch,epochs-epoch))
@@ -160,7 +161,19 @@ def main():
         record['validation_accuracy'].append(validation_accuracy)
         print ("    error: %s and accuracy: %s in %.2fs\n"%(train_error,train_accuracy,time.time()-epoch_time))
 
-    import pudb; pu.db
+        plt.plot(record['epoch'],record['train_error'], '-mo',label='Train Error' if epoch == 0 else "")
+        plt.plot(record['epoch'],record['train_accuracy'],'-go',label='Train Accuracy' if epoch == 0 else "")
+        plt.plot(record['epoch'],record['validation_error'], '-ro',label='Validation Error' if epoch == 0 else "")
+        plt.plot(record['epoch'],record['validation_accuracy'],'-bo',label='Validation Accuracy' if epoch == 0 else "")
+        plt.xlabel("Epoch")
+        plt.ylabel("Cross entropy error")
+        #plt.ylim(0,1)
+        plt.title('Training on predicting gender')
+        plt.legend(loc='upper right')
+
+        plt.show()#enter param False if running in iterative mode
+        plt.pause(0.0001)
+
     #test_fn = theano.function([input_var], lasagne.layers.get_output(network))
 
 if __name__ == "__main__":
