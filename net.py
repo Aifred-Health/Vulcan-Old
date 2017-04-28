@@ -171,7 +171,7 @@ def main():
         plt.title('Training on predicting gender')
         plt.legend(loc='upper right')
 
-        plt.show()#enter param False if running in iterative mode
+        plt.show()
         plt.pause(0.0001)
 
     #test_fn = theano.function([input_var], lasagne.layers.get_output(network))
