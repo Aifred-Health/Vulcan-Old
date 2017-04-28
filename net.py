@@ -20,19 +20,19 @@ def create_dense_network(dimensions, input_var):
     print ('Hidden Layer:')
 
     network = lasagne.layers.DenseLayer(network, 
-                                        num_units=32000,
+                                        num_units=2048,
                                         nonlinearity=lasagne.nonlinearities.rectify)
     network = lasagne.layers.DropoutLayer(network,p=0.5)
     print ' ',lasagne.layers.get_output_shape(network)
 
     network = lasagne.layers.DenseLayer(network,
-                                        num_units=16000,
+                                        num_units=2048,
                                         nonlinearity=lasagne.nonlinearities.rectify)
     network = lasagne.layers.DropoutLayer(network,p=0.5)
     print ' ',lasagne.layers.get_output_shape(network)
 
     network = lasagne.layers.DenseLayer(network,
-                                        num_units=8000,
+                                        num_units=1024,
                                         nonlinearity=lasagne.nonlinearities.rectify)
     network = lasagne.layers.DropoutLayer(network,p=0.5)
     print ' ',lasagne.layers.get_output_shape(network)
@@ -44,6 +44,21 @@ def create_dense_network(dimensions, input_var):
     print ' ',lasagne.layers.get_output_shape(network)
 
     return network
+
+def get_modified_truth(in_matrix):
+    '''
+        Reformats truth matrix to be the same size as the output of the dense network
+        Args:
+            in_matrix: the categorized 1D matrix (dtype needs to be category)
+
+        Returns: a correctly formatted numpy array of the truth matrix
+    '''
+    temp = np.zeros(shape=(1,len(in_matrix.cat.categories)), dtype='float32')
+    for i in np.array(in_matrix.cat.codes):
+        row = np.zeros((1,len(in_matrix.cat.categories)))
+        row[0,i] = 1.0
+        temp = np.concatenate((temp,row),axis=0)
+    return np.array(temp[1:],dtype='float32')
 
 def main():
 
@@ -61,11 +76,21 @@ def main():
     num_patients = np.count_nonzero(pd.unique(data.values[:,0]))
     num_attributes = np.count_nonzero(pd.unique(data.values[0]))
 
-    import pudb; pu.db
-    np_data = np.array(data)
+    data['Gender'] = data['Gender'].astype('category')
+    train_y = get_modified_truth(data['Gender'])
+    del data['Gender']
+    train_id = data['id_response']
+    del data['id_response']
+    #data['HAMD Score'] = data['HAMD Score'].astype('int32')
+    #data['Age'] = data['Age'].astype('int32')
+    data = data.astype('float32')
+    
+    train_X = np.array(data)
+    
     input_var = T.dmatrix('input')
     y = T.dmatrix('truth')
-    network = create_network(np_data.shape,input_var)
+    network = create_dense_network(train_X.shape,input_var)
+    test_fn = theano.function([input_var], lasagne.layers.get_output(network))
 
 if __name__ == "__main__":
     main()
