@@ -83,10 +83,11 @@ def create_validator(network, input_var, y):
     '''
     print ("Creating Validator...")
     val_prediction = lasagne.layers.get_output(network, deterministic=True)         #create prediction
-    val_loss = lasagne.objectives.categorical_crossentropy(val_prediction,y).mean()   #check how much error in prediction
-    val_acc = T.mean(T.eq(T.argmax(val_prediction, axis=1), T.argmax(y, axis=1)),dtype=theano.config.floatX)    #check the accuracy of the prediction
+    val_loss = lasagne.objectives.categorical_crossentropy(val_prediction,y).mean() #check how much error in prediction
+    val_acc = T.mean(T.eq(T.argmax(val_prediction, axis=1), T.argmax(y, axis=1)),
+                    dtype=theano.config.floatX)                                     #check the accuracy of the prediction
 
-    return theano.function([input_var, y], [val_loss, val_acc])    #check for error and accuracy percentage
+    return theano.function([input_var, y], [val_loss, val_acc])                     #check for error and accuracy percentage
 
 def get_modified_truth(in_matrix):
     '''
@@ -124,12 +125,17 @@ def main():
     data['Gender'] = data['Gender'].astype('category')
     gender_data = get_modified_truth(data['Gender'])
     del data['Gender']
-    train_id = data['id_response']
+    train_id = np.array(data['id_response'])
     del data['id_response']
     #data['HAMD Score'] = data['HAMD Score'].astype('int32')
     #data['Age'] = data['Age'].astype('int32')
     data = data.astype('float32')
     data = np.array(data)
+
+    permutation = np.random.permutation(data.shape[0]) # Used to shuffle matrices in unison
+    data = data[permutation]
+    train_id = train_id[permutation]
+    gender_data = gender_data[permutation]
 
     train_X = data[:int(data.shape[0]*train_reserve)]
     val_X = data[int(data.shape[0]*train_reserve):]
@@ -151,6 +157,9 @@ def main():
     for epoch in range(epochs):
         epoch_time = time.time()
         print ("--> Epoch: %d | Epochs left %d"%(epoch,epochs-epoch))
+
+
+
         trainer(train_X,train_y)
         train_error, train_accuracy = validator(train_X,train_y)
         validation_error,validation_accuracy = validator(val_X,val_y)
@@ -159,12 +168,18 @@ def main():
         record['train_accuracy'].append(train_accuracy)
         record['validation_error'].append(validation_error)
         record['validation_accuracy'].append(validation_accuracy)
-        print ("    error: %s and accuracy: %s in %.2fs\n"%(train_error,train_accuracy,time.time()-epoch_time))
+        print ("    error: %s and accuracy: %s in %.2fs\n"%(train_error,
+                                                            train_accuracy,
+                                                            time.time()-epoch_time))
 
-        plt.plot(record['epoch'],record['train_error'], '-mo',label='Train Error' if epoch == 0 else "")
-        plt.plot(record['epoch'],record['train_accuracy'],'-go',label='Train Accuracy' if epoch == 0 else "")
-        plt.plot(record['epoch'],record['validation_error'], '-ro',label='Validation Error' if epoch == 0 else "")
-        plt.plot(record['epoch'],record['validation_accuracy'],'-bo',label='Validation Accuracy' if epoch == 0 else "")
+        plt.plot(record['epoch'],record['train_error'], '-mo',
+                label='Train Error' if epoch == 0 else "")
+        plt.plot(record['epoch'],record['train_accuracy'],'-go',
+                label='Train Accuracy' if epoch == 0 else "")
+        plt.plot(record['epoch'],record['validation_error'], '-ro',
+                label='Validation Error' if epoch == 0 else "")
+        plt.plot(record['epoch'],record['validation_accuracy'],'-bo',
+                label='Validation Accuracy' if epoch == 0 else "")
         plt.xlabel("Epoch")
         plt.ylabel("Cross entropy error")
         #plt.ylim(0,1)
