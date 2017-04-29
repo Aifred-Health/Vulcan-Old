@@ -165,7 +165,7 @@ class Network(object):
 
         for epoch in range(epochs):
             epoch_time = time.time()
-            print ("--> Epoch: %d | Epochs left %d" % (epoch, epochs - epoch))
+            print ("--> Epoch: %d | Epochs left %d" % (epoch, epochs - epoch - 1))
 
             self.trainer(train_x, train_y)
             train_error, train_accuracy = self.validator(train_x, train_y)
