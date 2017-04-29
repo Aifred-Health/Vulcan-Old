@@ -241,9 +241,12 @@ class Network(object):
         Args:
             save_path: the location where you want to save the records
         """
-        import pickle
-        with open('%s_stats.pickle' % self.name, 'w') as output:
-            pickle.dump(self.record, output)
+        if self.record is not None:
+            import pickle
+            with open('%s_stats.pickle' % self.name, 'w') as output:
+                pickle.dump(self.record, output)
+        else:
+            print ("Error: Nothing to save. Try training the model first.")
 
 if __name__ == "__main__":
     pass
