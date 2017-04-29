@@ -27,6 +27,8 @@ def get_modified_truth(in_matrix):
 
 
 def main():
+    """Open data and format for model training."""
+
     # how much of the data do you want to reserve for training
     train_reserve = 0.7
 
@@ -72,19 +74,23 @@ def main():
     y = T.fmatrix('truth')
 
     dense_net = Network(
+        name='3_dense',
         dimensions=(None, int(train_x.shape[1])),
         input_var=input_var,
         y=y
     )
 
     dense_net.train(
-        epochs=100,
+        epochs=10,
         train_x=train_x,
         train_y=train_y,
         val_x=val_x,
         val_y=val_y,
         plot=True
     )
+
+    dense_net.save_model(save_path='models')
+    dense_net.save_record(save_path='records')
 
     # Use to get a function to get output of network
     # test_fn = theano.function([input_var], lasagne.layers.get_output(network))

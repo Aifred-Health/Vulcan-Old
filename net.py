@@ -2,6 +2,8 @@
 
 import time
 
+import os
+
 import numpy as np
 
 import lasagne
@@ -206,7 +208,7 @@ class Network(object):
                 plt.xlabel("Epoch")
                 plt.ylabel("Cross entropy error")
                 # plt.ylim(0,1)
-                plt.title('Training on predicting gender')
+                plt.title('Training curve for model: %s' % self.name)
                 plt.legend(loc='upper right')
 
                 plt.show()
@@ -219,8 +221,12 @@ class Network(object):
         Args:
             save_path: the location where you want to save the params
         """
-        network_name = '%s%s.npz' % (save_path, self.name)
-        print ('Saving model as %s' % network_name)
+        if not os.path.exists(save_path):
+            print ('Path not found, creating %s' % save_path)
+            os.makedirs(save_path)
+        file_path = os.path.join(save_path, self.name)
+        network_name = '%s.npz' % (file_path)
+        print ('Saving model as: %s' % network_name)
         np.savez(network_name, *lasagne.layers.get_all_param_values(self.network))
 
     def load_model(self, load_path):
@@ -230,6 +236,7 @@ class Network(object):
         Args:
             load_path: the exact location where the model has been saved.
         """
+        print ('Loading model  from: %s' % load_path)
         with np.load(load_path) as f:
             param_values = [f['arr_%d' % i] for i in range(len(f.files))]
             lasagne.layers.set_all_param_values(self.network, param_values)
@@ -243,7 +250,13 @@ class Network(object):
         """
         if self.record is not None:
             import pickle
-            with open('%s_stats.pickle' % self.name, 'w') as output:
+            if not os.path.exists(save_path):
+                print ('Path not found, creating %s' % save_path)
+                os.makedirs(save_path)
+
+            file_path = os.path.join(save_path, self.name)
+            print ('Saving records as: %s_stats.pickle' % file_path)
+            with open('%s_stats.pickle' % file_path, 'w') as output:
                 pickle.dump(self.record, output)
         else:
             print ("Error: Nothing to save. Try training the model first.")
