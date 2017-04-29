@@ -228,7 +228,7 @@ class Network(object):
         Will load the model paramters from npz file.
 
         Args:
-            load_path: the location where the model has been saved.
+            load_path: the exact location where the model has been saved.
         """
         with np.load(load_path) as f:
             param_values = [f['arr_%d' % i] for i in range(len(f.files))]
