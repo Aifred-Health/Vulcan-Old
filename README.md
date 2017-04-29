@@ -10,5 +10,5 @@ Precision Medicine for Increased Treatment Efficacy
  Running the script:
  To initialize and train the network run:
  ```
- python net.py
+ python train.py
  ```
