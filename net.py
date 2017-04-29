@@ -1,240 +1,213 @@
+"""Contains the class for creating networks."""
+
 import time
 
 import lasagne
 
 import matplotlib.pyplot as plt
 
-import numpy as np
-
-import pandas as pd
-
 import theano
 import theano.tensor as T
 
 
-def create_dense_network(dimensions, input_var):
-    """
-    Generate a fully connected layer.
+class Network(object):
+    """Class to generate networks and train them."""
 
-    Args:
-        dimension: the size of the incoming theano tensor
-        input_var: a theano tensor representing your data input
+    def __init__(self, dimensions, input_var, y):
+        """
+        Initialize network specified.
 
-    Returns: the output of the network (linked up to all the layers)
-    """
-    print ("Creating Network...")
-    network = lasagne.layers.InputLayer(shape=dimensions, input_var=input_var)
-    print ('Input Layer:')
-    print ' ', lasagne.layers.get_output_shape(network)
-    print ('Hidden Layer:')
+        Args:
+            dimensions: the size of the input data matrix
+            input_var: theano tensor representing input matrix
+            y: theano tensor representing truth matrix
+        """
+        self.dimensions = dimensions
+        self.input_var = input_var
+        self.y = y
+        self.network = self.create_dense_network()
+        self.trainer = self.create_trainer()
+        self.validator = self.create_validator()
 
-    network = lasagne.layers.DenseLayer(network,
-                                        num_units=4096,
-                                        nonlinearity=lasagne.nonlinearities.rectify)
-    network = lasagne.layers.DropoutLayer(network, p=0.5)
-    print ' ', lasagne.layers.get_output_shape(network)
+    def create_dense_network(self):
+        """
+        Generate a fully connected layer.
 
-    network = lasagne.layers.DenseLayer(network,
-                                        num_units=2048,
-                                        nonlinearity=lasagne.nonlinearities.rectify)
-    network = lasagne.layers.DropoutLayer(network, p=0.5)
-    print ' ', lasagne.layers.get_output_shape(network)
+        Args:
+            dimension: the size of the incoming theano tensor
+            input_var: a theano tensor representing your data input
 
-    network = lasagne.layers.DenseLayer(network,
-                                        num_units=1024,
-                                        nonlinearity=lasagne.nonlinearities.rectify)
-    network = lasagne.layers.DropoutLayer(network, p=0.5)
-    print ' ', lasagne.layers.get_output_shape(network)
+        Returns: the output of the network (linked up to all the layers)
+        """
+        print ("Creating Network...")
+        print ('Input Layer:')
+        network = lasagne.layers.InputLayer(shape=self.dimensions,
+                                            input_var=self.input_var)
+        print ' ', lasagne.layers.get_output_shape(network)
 
-    network = lasagne.layers.DenseLayer(network,
-                                        num_units=2,
-                                        nonlinearity=lasagne.nonlinearities.softmax)
-    print ('Output Layer:')
-    print ' ', lasagne.layers.get_output_shape(network)
+        print ('Hidden Layer:')
+        network = lasagne.layers.DenseLayer(network,
+                                            num_units=4096,
+                                            nonlinearity=lasagne.nonlinearities.rectify)
+        network = lasagne.layers.DropoutLayer(network, p=0.5)
+        print ' ', lasagne.layers.get_output_shape(network)
 
-    return network
+        network = lasagne.layers.DenseLayer(network,
+                                            num_units=2048,
+                                            nonlinearity=lasagne.nonlinearities.rectify)
+        network = lasagne.layers.DropoutLayer(network, p=0.5)
+        print ' ', lasagne.layers.get_output_shape(network)
 
+        network = lasagne.layers.DenseLayer(network,
+                                            num_units=1024,
+                                            nonlinearity=lasagne.nonlinearities.rectify)
+        network = lasagne.layers.DropoutLayer(network, p=0.5)
+        print ' ', lasagne.layers.get_output_shape(network)
 
-def create_trainer(network, input_var, y):
-    """
-    Generate a theano function to train the network.
+        network = lasagne.layers.DenseLayer(network,
+                                            num_units=2,
+                                            nonlinearity=lasagne.nonlinearities.softmax)
 
-    Args:
-        network: Lasagne object representing the network
-        input_var: theano.tensor object used for data input
-        y: theano.tensor object used for truths
+        print ('Output Layer:')
+        print ' ', lasagne.layers.get_output_shape(network)
 
-    Returns: theano function that takes as input (train_x,train_y) and trains the net
-    """
-    print ("Creating Trainer...")
-    # get network output
-    out = lasagne.layers.get_output(network)
-    # get all trainable parameters from network
-    params = lasagne.layers.get_all_params(network, trainable=True)
-    # calculate a loss function which has to be a scalar
-    cost = T.nnet.categorical_crossentropy(out, y).mean()
-    # calculate updates using ADAM optimization gradient descent
-    updates = lasagne.updates.adam(
-        cost,
-        params,
-        learning_rate=0.001,
-        beta1=0.9,
-        beta2=0.999,
-        epsilon=1e-08
-    )
-    # omitted (, allow_input_downcast=True)
-    return theano.function([input_var, y], updates=updates)
+        return network
 
+    def create_trainer(self):
+        """
+        Generate a theano function to train the network.
 
-def create_validator(network, input_var, y):
-    """
-    Generate a theano function to check the error and accuracy of the network.
+        Args:
+            network: Lasagne object representing the network
+            input_var: theano.tensor object used for data input
+            y: theano.tensor object used for truths
 
-    Args:
-        network: Lasagne object representing the network
-        input_var: theano.tensor object used for data input
-        y: theano.tensor object used for truths
-
-    Returns: theano function that takes input (train_x,train_y) and returns error and accuracy
-    """
-    print ("Creating Validator...")
-    # create prediction
-    val_prediction = lasagne.layers.get_output(network, deterministic=True)
-    # check how much error in prediction
-    val_loss = lasagne.objectives.categorical_crossentropy(val_prediction, y).mean()
-    # check the accuracy of the prediction
-    val_acc = T.mean(T.eq(T.argmax(val_prediction, axis=1), T.argmax(y, axis=1)),
-                    dtype=theano.config.floatX)
-
-    return theano.function([input_var, y], [val_loss, val_acc])
-
-
-def get_modified_truth(in_matrix):
-    """
-    Reformat truth matrix to be the same size as the output of the dense network.
-
-    Args:
-        in_matrix: the categorized 1D matrix (dtype needs to be category)
-
-    Returns: a correctly formatted numpy array of the truth matrix
-    """
-    temp = np.zeros(shape=(1, len(in_matrix.cat.categories)), dtype='float32')
-    for i in np.array(in_matrix.cat.codes):
-        row = np.zeros((1, len(in_matrix.cat.categories)))
-        row[0, i] = 1.0
-        temp = np.concatenate((temp, row), axis=0)
-    return np.array(temp[1:], dtype='float32')
-
-
-def main():
-    # how much of the data do you want to reserve for training
-    train_reserve = 0.7
-    # how many pass throughs for training the model
-    epochs = 100
-    data = pd.read_csv(
-        'data/Citalopram_study.csv',
-        low_memory='false',
-        header=None,
-        index_col=0)
-
-    data = data.transpose()
-    del data['Response']
-    del data['Remission']
-    del data['FileGroup']
-    del data['Accession Id']
-    del data['TimePoint']
-    del data['(ng/ml/mg CIT dose)']
-    del data['%improvement']
-    # num_patients = np.count_nonzero(pd.unique(data.values[:, 0]))
-    # num_attributes = np.count_nonzero(pd.unique(data.values[0]))
-
-    data['Gender'] = data['Gender'].astype('category')
-    gender_data = get_modified_truth(data['Gender'])
-    del data['Gender']
-    train_id = np.array(data['id_response'])
-    del data['id_response']
-    # data['HAMD Score'] = data['HAMD Score'].astype('int32')
-    # data['Age'] = data['Age'].astype('int32')
-    data = data.astype('float32')
-    data = np.array(data)
-
-    # Used to shuffle matrices in unison
-    permutation = np.random.permutation(data.shape[0])
-    data = data[permutation]
-    train_id = train_id[permutation]
-    gender_data = gender_data[permutation]
-
-    train_x = data[:int(data.shape[0] * train_reserve)]
-    val_x = data[int(data.shape[0] * train_reserve):]
-    train_y = gender_data[:int(gender_data.shape[0] * train_reserve)]
-    val_y = gender_data[int(gender_data.shape[0] * train_reserve):]
-
-    input_var = T.fmatrix('input')
-    y = T.fmatrix('truth')
-    network = create_dense_network((None, int(train_x.shape[1])), input_var)
-    trainer = create_trainer(network, input_var, y)
-    validator = create_validator(network, input_var, y)
-
-    record = dict(
-        epoch=[],
-        train_error=[],
-        train_accuracy=[],
-        validation_error=[],
-        validation_accuracy=[]
-    )
-    plt.ion()
-    for epoch in range(epochs):
-        epoch_time = time.time()
-        print ("--> Epoch: %d | Epochs left %d" % (epoch, epochs - epoch))
-
-        trainer(train_x, train_y)
-        train_error, train_accuracy = validator(train_x, train_y)
-        validation_error, validation_accuracy = validator(val_x, val_y)
-        record['epoch'].append(epoch)
-        record['train_error'].append(train_error)
-        record['train_accuracy'].append(train_accuracy)
-        record['validation_error'].append(validation_error)
-        record['validation_accuracy'].append(validation_accuracy)
-        print ("    error: %s and accuracy: %s in %.2fs\n" % (
-            train_error,
-            train_accuracy,
-            time.time() - epoch_time)
+        Returns: theano function that takes as input (train_x,train_y) and trains the net
+        """
+        print ("Creating Trainer...")
+        # get network output
+        out = lasagne.layers.get_output(self.network)
+        # get all trainable parameters from network
+        params = lasagne.layers.get_all_params(self.network, trainable=True)
+        # calculate a loss function which has to be a scalar
+        cost = T.nnet.categorical_crossentropy(out, self.y).mean()
+        # calculate updates using ADAM optimization gradient descent
+        updates = lasagne.updates.adam(
+            cost,
+            params,
+            learning_rate=0.001,
+            beta1=0.9,
+            beta2=0.999,
+            epsilon=1e-08
         )
+        # omitted (, allow_input_downcast=True)
+        return theano.function([self.input_var, self.y], updates=updates)
 
-        plt.plot(
-            record['epoch'],
-            record['train_error'],
-            '-mo',
-            label='Train Error' if epoch == 0 else ""
-        )
-        plt.plot(
-            record['epoch'],
-            record['train_accuracy'],
-            '-go',
-            label='Train Accuracy' if epoch == 0 else ""
-        )
-        plt.plot(
-            record['epoch'],
-            record['validation_error'],
-            '-ro',
-            label='Validation Error' if epoch == 0 else ""
-        )
-        plt.plot(
-            record['epoch'],
-            record['validation_accuracy'],
-            '-bo',
-            label='Validation Accuracy' if epoch == 0 else ""
-        )
-        plt.xlabel("Epoch")
-        plt.ylabel("Cross entropy error")
-        # plt.ylim(0,1)
-        plt.title('Training on predicting gender')
-        plt.legend(loc='upper right')
+    def create_validator(self):
+        """
+        Generate a theano function to check the error and accuracy of the network.
 
-        plt.show()
-        plt.pause(0.0001)
-    # Use to get a function to get output of network
-    # test_fn = theano.function([input_var], lasagne.layers.get_output(network))
+        Args:
+            network: Lasagne object representing the network
+            input_var: theano.tensor object used for data input
+            y: theano.tensor object used for truths
+
+        Returns: theano function that takes input (train_x,train_y)
+                 and returns error and accuracy
+        """
+        print ("Creating Validator...")
+        # create prediction
+        val_prediction = lasagne.layers.get_output(
+            self.network,
+            deterministic=True
+        )
+        # check how much error in prediction
+        val_loss = lasagne.objectives.categorical_crossentropy(
+            val_prediction,
+            self.y
+        ).mean()
+        # check the accuracy of the prediction
+        val_acc = T.mean(T.eq(T.argmax(val_prediction, axis=1), T.argmax(self.y, axis=1)),
+                        dtype=theano.config.floatX)
+
+        return theano.function([self.input_var, self.y], [val_loss, val_acc])
+
+    def train(self, epochs, train_x, train_y, val_x, val_y, plot=True):
+        """
+        Train the network.
+
+        Args:
+            epochs: how many times to iterate over the training data
+            train_x: the training data
+            train_y: the training truth
+            val_x: the validation data (should not be also in train_x)
+            val_y: the validation truth (should not be also in train_y)
+            plot: A boolean if the training curves should be plotted while training
+
+        """
+        self.record = dict(
+            epoch=[],
+            train_error=[],
+            train_accuracy=[],
+            validation_error=[],
+            validation_accuracy=[]
+        )
+        if plot:
+            plt.ion()
+
+        for epoch in range(epochs):
+            epoch_time = time.time()
+            print ("--> Epoch: %d | Epochs left %d" % (epoch, epochs - epoch))
+
+            self.trainer(train_x, train_y)
+            train_error, train_accuracy = self.validator(train_x, train_y)
+            validation_error, validation_accuracy = self.validator(val_x, val_y)
+
+            self.record['epoch'].append(epoch)
+            self.record['train_error'].append(train_error)
+            self.record['train_accuracy'].append(train_accuracy)
+            self.record['validation_error'].append(validation_error)
+            self.record['validation_accuracy'].append(validation_accuracy)
+            print ("    error: %s and accuracy: %s in %.2fs\n" % (
+                train_error,
+                train_accuracy,
+                time.time() - epoch_time)
+            )
+
+            if plot:
+                plt.plot(
+                    self.record['epoch'],
+                    self.record['train_error'],
+                    '-mo',
+                    label='Train Error' if epoch == 0 else ""
+                )
+                plt.plot(
+                    self.record['epoch'],
+                    self.record['train_accuracy'],
+                    '-go',
+                    label='Train Accuracy' if epoch == 0 else ""
+                )
+                plt.plot(
+                    self.record['epoch'],
+                    self.record['validation_error'],
+                    '-ro',
+                    label='Validation Error' if epoch == 0 else ""
+                )
+                plt.plot(
+                    self.record['epoch'],
+                    self.record['validation_accuracy'],
+                    '-bo',
+                    label='Validation Accuracy' if epoch == 0 else ""
+                )
+                plt.xlabel("Epoch")
+                plt.ylabel("Cross entropy error")
+                # plt.ylim(0,1)
+                plt.title('Training on predicting gender')
+                plt.legend(loc='upper right')
+
+                plt.show()
+                plt.pause(0.0001)
+
 
 if __name__ == "__main__":
-    main()
+    pass
