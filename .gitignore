@@ -1,2 +1,4 @@
 data
 *.csv
+*.npz
+*.pickle
