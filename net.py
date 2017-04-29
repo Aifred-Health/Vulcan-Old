@@ -127,7 +127,9 @@ def get_modified_truth(in_matrix):
 
 
 def main():
+    # how much of the data do you want to reserve for training
     train_reserve = 0.7
+    # how many pass throughs for training the model
     epochs = 100
     data = pd.read_csv(
         'data/Citalopram_study.csv',
@@ -193,9 +195,11 @@ def main():
         record['train_accuracy'].append(train_accuracy)
         record['validation_error'].append(validation_error)
         record['validation_accuracy'].append(validation_accuracy)
-        print ("    error: %s and accuracy: %s in %.2fs\n" % (train_error,
-                                                            train_accuracy,
-                                                            time.time() - epoch_time))
+        print ("    error: %s and accuracy: %s in %.2fs\n" % (
+            train_error,
+            train_accuracy,
+            time.time() - epoch_time)
+        )
 
         plt.plot(
             record['epoch'],
