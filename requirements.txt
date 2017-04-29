@@ -1,0 +1,5 @@
+theano==0.9.0dev4.dev-ecfc65ec8de80ebfee4c63d1bed48c3cd105a805
+lasagne==1.12.0
+numpy==1.12.0
+matplotlib==1.12.0
+pandas==1.12.0
