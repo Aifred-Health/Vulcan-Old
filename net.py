@@ -65,9 +65,13 @@ def create_trainer(network, input_var, y):
         Returns: theano function that takes as input (train_x,train_y) and trains the net
     '''
     print ("Creating Trainer...")
-    out = lasagne.layers.get_output(network)  # get network output
-    params = lasagne.layers.get_all_params(network, trainable=True)  # get all trainable parameters from network
-    cost = T.nnet.categorical_crossentropy(out, y).mean()  # calculate a loss function which has to be a scalar
+    # get network output
+    out = lasagne.layers.get_output(network)
+    # get all trainable parameters from network
+    params = lasagne.layers.get_all_params(network, trainable=True)
+    # calculate a loss function which has to be a scalar
+    cost = T.nnet.categorical_crossentropy(out, y).mean()
+    # calculate updates using ADAM optimization gradient descent
     updates = lasagne.updates.adam(
         cost,
         params,
@@ -75,9 +79,9 @@ def create_trainer(network, input_var, y):
         beta1=0.9,
         beta2=0.999,
         epsilon=1e-08
-    )  # calculate updates using ADAM optimization gradient descent
-
-    return theano.function([input_var, y], updates=updates)  # omitted (, allow_input_downcast=True)
+    )
+    # omitted (, allow_input_downcast=True)
+    return theano.function([input_var, y], updates=updates)
 
 
 def create_validator(network, input_var, y):
@@ -91,12 +95,15 @@ def create_validator(network, input_var, y):
         Returns: theano function that takes input (train_x,train_y) and returns error and accuracy
     '''
     print ("Creating Validator...")
-    val_prediction = lasagne.layers.get_output(network, deterministic=True)         #create prediction
-    val_loss = lasagne.objectives.categorical_crossentropy(val_prediction, y).mean() #check how much error in prediction
+    # create prediction
+    val_prediction = lasagne.layers.get_output(network, deterministic=True)
+    # check how much error in prediction
+    val_loss = lasagne.objectives.categorical_crossentropy(val_prediction, y).mean()
+    # check the accuracy of the prediction
     val_acc = T.mean(T.eq(T.argmax(val_prediction, axis=1), T.argmax(y, axis=1)),
-                    dtype=theano.config.floatX)                                     #check the accuracy of the prediction
+                    dtype=theano.config.floatX)
 
-    return theano.function([input_var, y], [val_loss, val_acc])                     #check for error and accuracy percentage
+    return theano.function([input_var, y], [val_loss, val_acc])
 
 
 def get_modified_truth(in_matrix):
@@ -145,7 +152,8 @@ def main():
     data = data.astype('float32')
     data = np.array(data)
 
-    permutation = np.random.permutation(data.shape[0])  # Used to shuffle matrices in unison
+    # Used to shuffle matrices in unison
+    permutation = np.random.permutation(data.shape[0])
     data = data[permutation]
     train_id = train_id[permutation]
     gender_data = gender_data[permutation]
