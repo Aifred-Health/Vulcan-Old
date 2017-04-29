@@ -2,6 +2,8 @@
 
 import time
 
+import numpy as np
+
 import lasagne
 
 import matplotlib.pyplot as plt
@@ -13,7 +15,7 @@ import theano.tensor as T
 class Network(object):
     """Class to generate networks and train them."""
 
-    def __init__(self, dimensions, input_var, y):
+    def __init__(self, name, dimensions, input_var, y):
         """
         Initialize network specified.
 
@@ -22,12 +24,14 @@ class Network(object):
             input_var: theano tensor representing input matrix
             y: theano tensor representing truth matrix
         """
+        self.name = name
         self.dimensions = dimensions
         self.input_var = input_var
         self.y = y
         self.network = self.create_dense_network()
         self.trainer = self.create_trainer()
         self.validator = self.create_validator()
+        self.record = None
 
     def create_dense_network(self):
         """
@@ -208,6 +212,38 @@ class Network(object):
                 plt.show()
                 plt.pause(0.0001)
 
+    def save_model(self, save_path):
+        """
+        Will save the model parameters to a npz file.
+
+        Args:
+            save_path: the location where you want to save the params
+        """
+        network_name = '%s%s.npz' % (save_path, self.name)
+        print ('Saving model as %s' % network_name)
+        np.savez(network_name, *lasagne.layers.get_all_param_values(self.network))
+
+    def load_model(self, load_path):
+        """
+        Will load the model paramters from npz file.
+
+        Args:
+            load_path: the location where the model has been saved.
+        """
+        with np.load(load_path) as f:
+            param_values = [f['arr_%d' % i] for i in range(len(f.files))]
+            lasagne.layers.set_all_param_values(self.network, param_values)
+
+    def save_record(self, save_path):
+        """
+        Will save the training records to file to be loaded up later.
+
+        Args:
+            save_path: the location where you want to save the records
+        """
+        import pickle
+        with open('%s_stats.pickle' % self.name, 'w') as output:
+            pickle.dump(self.record, output)
 
 if __name__ == "__main__":
     pass

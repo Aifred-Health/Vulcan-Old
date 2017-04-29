@@ -1,3 +1,5 @@
+"""Contains the train script and data formatting."""
+
 import numpy as np
 
 import pandas as pd
@@ -14,7 +16,7 @@ def get_modified_truth(in_matrix):
     Args:
         in_matrix: the categorized 1D matrix (dtype needs to be category)
 
-    Returns: a correctly formatted numpy array of the truth matrix
+    Returns: a a one-hot matrix representing the categorized matrix
     """
     temp = np.zeros(shape=(1, len(in_matrix.cat.categories)), dtype='float32')
     for i in np.array(in_matrix.cat.codes):
@@ -47,11 +49,11 @@ def main():
 
     data['Gender'] = data['Gender'].astype('category')
     gender_data = get_modified_truth(data['Gender'])
-    del data['Gender']
     train_id = np.array(data['id_response'])
+
+    del data['Gender']
     del data['id_response']
-    # data['HAMD Score'] = data['HAMD Score'].astype('int32')
-    # data['Age'] = data['Age'].astype('int32')
+
     data = data.astype('float32')
     data = np.array(data)
 
