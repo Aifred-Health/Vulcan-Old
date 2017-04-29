@@ -13,14 +13,15 @@ import theano.tensor as T
 
 
 def create_dense_network(dimensions, input_var):
-    '''
-        Generates a fully connected layer
-        Args:
-            dimension: the size of the incoming theano tensor
-            input_var: a theano tensor representing your data input
+    """
+    Generate a fully connected layer.
 
-        Returns: the output of the network (linked up to all the layers)
-    '''
+    Args:
+        dimension: the size of the incoming theano tensor
+        input_var: a theano tensor representing your data input
+
+    Returns: the output of the network (linked up to all the layers)
+    """
     print ("Creating Network...")
     network = lasagne.layers.InputLayer(shape=dimensions, input_var=input_var)
     print ('Input Layer:')
@@ -55,15 +56,16 @@ def create_dense_network(dimensions, input_var):
 
 
 def create_trainer(network, input_var, y):
-    '''
-        Generates a theano function to train the network
-        Args:
-            network: Lasagne object representing the network
-            input_var: theano.tensor object used for data input
-            y: theano.tensor object used for truths
+    """
+    Generate a theano function to train the network.
 
-        Returns: theano function that takes as input (train_x,train_y) and trains the net
-    '''
+    Args:
+        network: Lasagne object representing the network
+        input_var: theano.tensor object used for data input
+        y: theano.tensor object used for truths
+
+    Returns: theano function that takes as input (train_x,train_y) and trains the net
+    """
     print ("Creating Trainer...")
     # get network output
     out = lasagne.layers.get_output(network)
@@ -85,15 +87,16 @@ def create_trainer(network, input_var, y):
 
 
 def create_validator(network, input_var, y):
-    '''
-        Generates a theano function to check the error and accuracy of the network
-        Args:
-            network: Lasagne object representing the network
-            input_var: theano.tensor object used for data input
-            y: theano.tensor object used for truths
+    """
+    Generate a theano function to check the error and accuracy of the network.
 
-        Returns: theano function that takes input (train_x,train_y) and returns error and accuracy
-    '''
+    Args:
+        network: Lasagne object representing the network
+        input_var: theano.tensor object used for data input
+        y: theano.tensor object used for truths
+
+    Returns: theano function that takes input (train_x,train_y) and returns error and accuracy
+    """
     print ("Creating Validator...")
     # create prediction
     val_prediction = lasagne.layers.get_output(network, deterministic=True)
@@ -107,13 +110,14 @@ def create_validator(network, input_var, y):
 
 
 def get_modified_truth(in_matrix):
-    '''
-        Reformats truth matrix to be the same size as the output of the dense network
-        Args:
-            in_matrix: the categorized 1D matrix (dtype needs to be category)
+    """
+    Reformat truth matrix to be the same size as the output of the dense network.
 
-        Returns: a correctly formatted numpy array of the truth matrix
-    '''
+    Args:
+        in_matrix: the categorized 1D matrix (dtype needs to be category)
+
+    Returns: a correctly formatted numpy array of the truth matrix
+    """
     temp = np.zeros(shape=(1, len(in_matrix.cat.categories)), dtype='float32')
     for i in np.array(in_matrix.cat.codes):
         row = np.zeros((1, len(in_matrix.cat.categories)))
@@ -225,7 +229,7 @@ def main():
 
         plt.show()
         plt.pause(0.0001)
-
+    # Use to get a function to get output of network
     # test_fn = theano.function([input_var], lasagne.layers.get_output(network))
 
 if __name__ == "__main__":
