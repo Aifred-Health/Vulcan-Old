@@ -46,36 +46,36 @@ class Network(object):
         Returns: the output of the network (linked up to all the layers)
         """
         print ("Creating Network...")
-        print ('Input Layer:')
+        print ('\tInput Layer:')
         network = lasagne.layers.InputLayer(shape=self.dimensions,
                                             input_var=self.input_var)
-        print ' ', lasagne.layers.get_output_shape(network)
+        print '\t\t', lasagne.layers.get_output_shape(network)
 
-        print ('Hidden Layer:')
+        print ('\tHidden Layer:')
         network = lasagne.layers.DenseLayer(network,
                                             num_units=4096,
                                             nonlinearity=lasagne.nonlinearities.rectify)
         network = lasagne.layers.DropoutLayer(network, p=0.5)
-        print ' ', lasagne.layers.get_output_shape(network)
+        print '\t\t', lasagne.layers.get_output_shape(network)
 
         network = lasagne.layers.DenseLayer(network,
                                             num_units=2048,
                                             nonlinearity=lasagne.nonlinearities.rectify)
         network = lasagne.layers.DropoutLayer(network, p=0.5)
-        print ' ', lasagne.layers.get_output_shape(network)
+        print '\t\t', lasagne.layers.get_output_shape(network)
 
         network = lasagne.layers.DenseLayer(network,
                                             num_units=1024,
                                             nonlinearity=lasagne.nonlinearities.rectify)
         network = lasagne.layers.DropoutLayer(network, p=0.5)
-        print ' ', lasagne.layers.get_output_shape(network)
+        print '\t\t', lasagne.layers.get_output_shape(network)
 
         network = lasagne.layers.DenseLayer(network,
                                             num_units=2,
                                             nonlinearity=lasagne.nonlinearities.softmax)
 
-        print ('Output Layer:')
-        print ' ', lasagne.layers.get_output_shape(network)
+        print ('\tOutput Layer:')
+        print '\t\t', lasagne.layers.get_output_shape(network)
 
         return network
 
@@ -151,6 +151,8 @@ class Network(object):
             plot: A boolean if the training curves should be plotted while training
 
         """
+        print ('\nTraining %s in progress...\n' % self.name)
+
         self.record = dict(
             epoch=[],
             train_error=[],
@@ -236,7 +238,7 @@ class Network(object):
         Args:
             load_path: the exact location where the model has been saved.
         """
-        print ('Loading model  from: %s' % load_path)
+        print ('Loading model from: %s' % load_path)
         with np.load(load_path) as f:
             param_values = [f['arr_%d' % i] for i in range(len(f.files))]
             lasagne.layers.set_all_param_values(self.network, param_values)
