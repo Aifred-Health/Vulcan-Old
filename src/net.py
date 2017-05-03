@@ -26,9 +26,9 @@ class Network(object):
             dimensions: the size of the input data matrix
             input_var: theano tensor representing input matrix
             y: theano tensor representing truth matrix
-            units: The list of number of nodes to have at each layer, respectively
-            dropout: The list of dropout probabilities to have at each layer, respectively
-            input_network: for appending more networks together (must be of type Network)
+            units: The list of number of nodes to have at each layer
+            dropout: The list of dropout probabilities to have at each layer
+            input_network: append networks together (must be of type Network)
             classifier: boolean representing if this network should classify
         """
         self.name = name
@@ -40,7 +40,7 @@ class Network(object):
             units=units,
             dropouts=dropouts
         )
-        if num_classes is not None:
+        if num_classes is not None or num_classes != 0:
             self.network = self.create_classification_layer(
                 self.network,
                 num_classes=num_classes
@@ -60,13 +60,13 @@ class Network(object):
         Args:
             dimension: the size of the incoming theano tensor
             input_var: a theano tensor representing your data input
-            units: The list of number of nodes to have at each layer, respectively
-            dropout: The list of dropout probabilities to have at each layer, respectively
+            units: The list of number of nodes to have at each layer
+            dropout: The list of dropout probabilities to have at each layer
 
         Returns: the output of the network (linked up to all the layers)
         """
         if len(units) != len(dropouts):
-            print ("Cannot build network since units and dropout components don't match up.")
+            print ("Cannot build network: units and dropouts don't correspond")
             return
 
         print ("Creating Network...")
@@ -77,7 +77,8 @@ class Network(object):
             print '\t\t', lasagne.layers.get_output_shape(network)
         else:
             network = self.input_network.network
-            print ('Appending %s to %s.' % (self.name, self.input_network.name))
+            print ('Appending %s to %s.' % (self.name,
+                                            self.input_network.name))
 
         print ('\tHidden Layer:')
         for (num_units, prob_dropout) in zip(units, dropouts):
@@ -123,7 +124,8 @@ class Network(object):
             input_var: theano.tensor object used for data input
             y: theano.tensor object used for truths
 
-        Returns: theano function that takes as input (train_x,train_y) and trains the net
+        Returns: theano function that takes as input (train_x,train_y)
+                 and trains the net
         """
         print ("Creating Trainer...")
         # get network output
@@ -146,7 +148,7 @@ class Network(object):
 
     def create_validator(self):
         """
-        Generate a theano function to check the error and accuracy of the network.
+        Generate theano function to check error and accuracy of the network.
 
         Args:
             network: Lasagne object representing the network
@@ -168,8 +170,9 @@ class Network(object):
             self.y
         ).mean()
         # check the accuracy of the prediction
-        val_acc = T.mean(T.eq(T.argmax(val_prediction, axis=1), T.argmax(self.y, axis=1)),
-                        dtype=theano.config.floatX)
+        val_acc = T.mean(T.eq(T.argmax(val_prediction, axis=1),
+                              T.argmax(self.y, axis=1)),
+                         dtype=theano.config.floatX)
 
         return theano.function([self.input_var, self.y], [val_loss, val_acc])
 
@@ -179,7 +182,8 @@ class Network(object):
 
         Args:
             input_data: Numpy matrix to make the predictions on
-            get_predictions: If the output should return the class with highest probability
+            get_predictions: If the output should return the class
+                             with highest probability
 
         Returns: Numpy matrix with the output probabilities
                  with each class unless otherwise specified.
@@ -202,7 +206,7 @@ class Network(object):
             train_y: the training truth
             val_x: the validation data (should not be also in train_x)
             val_y: the validation truth (should not be also in train_y)
-            plot: A boolean if the training curves should be plotted while training
+            plot: boolean if training curves should be plotted while training
 
         """
         print ('\nTraining %s in progress...\n' % self.name)
@@ -226,7 +230,8 @@ class Network(object):
 
             self.trainer(train_x, train_y)
             train_error, train_accuracy = self.validator(train_x, train_y)
-            validation_error, validation_accuracy = self.validator(val_x, val_y)
+            validation_error, validation_accuracy = self.validator(val_x,
+                                                                   val_y)
 
             self.record['epoch'].append(epoch)
             self.record['train_error'].append(train_error)
@@ -286,7 +291,8 @@ class Network(object):
         file_path = os.path.join(save_path, self.name)
         network_name = '%s.npz' % (file_path)
         print ('Saving model as: %s' % network_name)
-        np.savez(network_name, *lasagne.layers.get_all_param_values(self.network))
+        np.savez(network_name,
+                 *lasagne.layers.get_all_param_values(self.network))
 
     def load_model(self, load_path):
         """
