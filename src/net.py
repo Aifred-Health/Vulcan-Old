@@ -141,7 +141,7 @@ class Network(object):
 
         return theano.function([self.input_var, self.y], [val_loss, val_acc])
 
-    def forward_pass(self, input_data, convert_to_class=True):
+    def forward_pass(self, input_data, convert_to_class=False):
         """
         Allow the implementer to quickly get outputs from the network.
 
