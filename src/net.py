@@ -17,7 +17,8 @@ import theano.tensor as T
 class Network(object):
     """Class to generate networks and train them."""
 
-    def __init__(self, name, dimensions, input_var, y):
+    def __init__(self, name, dimensions, input_var, y,
+                 units, dropouts, input_network=None, num_classes=None):
         """
         Initialize network specified.
 
@@ -25,12 +26,26 @@ class Network(object):
             dimensions: the size of the input data matrix
             input_var: theano tensor representing input matrix
             y: theano tensor representing truth matrix
+            units: The list of number of nodes to have at each layer, respectively
+            dropout: The list of dropout probabilities to have at each layer, respectively
+            input_network: for appending more networks together (must be of type Network)
+            classifier: boolean representing if this network should classify
         """
         self.name = name
         self.dimensions = dimensions
         self.input_var = input_var
         self.y = y
-        self.network = self.create_dense_network()
+        self.input_network = input_network
+        self.network = self.create_dense_network(
+            units=units,
+            dropouts=dropouts
+        )
+        if num_classes is not None:
+            self.network = self.create_classification_layer(
+                self.network,
+                num_classes=num_classes
+            )
+
         self.trainer = self.create_trainer()
         self.validator = self.create_validator()
         self.output = theano.function(
@@ -38,7 +53,7 @@ class Network(object):
             lasagne.layers.get_output(self.network))
         self.record = None
 
-    def create_dense_network(self, units=[4096, 2048, 1024], dropout=[0.5, 0.5, 0.5]):
+    def create_dense_network(self, units, dropouts):
         """
         Generate a fully connected layer.
 
@@ -50,18 +65,22 @@ class Network(object):
 
         Returns: the output of the network (linked up to all the layers)
         """
-        if len(units) != len(dropout):
+        if len(units) != len(dropouts):
             print ("Cannot build network since units and dropout components don't match up.")
             return
 
         print ("Creating Network...")
-        print ('\tInput Layer:')
-        network = lasagne.layers.InputLayer(shape=self.dimensions,
-                                            input_var=self.input_var)
-        print '\t\t', lasagne.layers.get_output_shape(network)
+        if self.input_network is None:
+            print ('\tInput Layer:')
+            network = lasagne.layers.InputLayer(shape=self.dimensions,
+                                                input_var=self.input_var)
+            print '\t\t', lasagne.layers.get_output_shape(network)
+        else:
+            network = self.input_network.network
+            print ('Appending %s to %s.' % (self.name, self.input_network.name))
 
         print ('\tHidden Layer:')
-        for (num_units, prob_dropout) in zip(units, dropout):
+        for (num_units, prob_dropout) in zip(units, dropouts):
             network = lasagne.layers.DenseLayer(
                 network,
                 num_units=num_units,
@@ -73,13 +92,24 @@ class Network(object):
             )
             print '\t\t', lasagne.layers.get_output_shape(network)
 
+        return network
+
+    def create_classification_layer(self, network, num_classes):
+        """
+        Create a classificatino layer. Normally used as the last layer.
+
+        Args:
+            network: network you want to append a classification to
+            num_classes: how many classes you want to predict
+
+        Returns: the classification layer appended to all previous layers
+        """
+        print ('\tOutput Layer:')
         network = lasagne.layers.DenseLayer(
             network,
-            num_units=2,
+            num_units=num_classes,
             nonlinearity=lasagne.nonlinearities.softmax
         )
-
-        print ('\tOutput Layer:')
         print '\t\t', lasagne.layers.get_output_shape(network)
 
         return network

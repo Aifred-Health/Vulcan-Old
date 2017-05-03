@@ -63,7 +63,11 @@ def main():
         name='3_dense',
         dimensions=(None, int(train_x.shape[1])),
         input_var=input_var,
-        y=y
+        y=y,
+        units=[4096, 2048, 1024],
+        dropouts=[0.5, 0.5, 0.5],
+        input_network=None,
+        num_classes=2
     )
 
     # Use to load model from disk
