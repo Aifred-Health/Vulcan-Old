@@ -8,11 +8,20 @@ Precision Medicine for Increased Treatment Efficacy
  ```
 
 ## Running the scripts:
- To train the studies on gender and predict that run:
+ To train the studies on gender and predict the class run:
  ```
- train_citalopram_gender.py
+ python train_citalopram_gender.py
  ```
  or
   ```
- train_duloxetine_gender.py
+ python train_duloxetine_gender.py
+ ```
+
+ To train the studies on remission and predict the class run:
+  ```
+ python train_citalopram_remission.py
+ ```
+ or
+  ```
+ python train_duloxetine_remission.py
  ```
