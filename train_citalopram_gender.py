@@ -6,9 +6,9 @@ import pandas as pd
 
 import theano.tensor as T
 
-from net import Network
+from src.net import Network
 
-from utils import get_modified_truth
+from src.utils import get_modified_truth
 
 
 def main():
@@ -23,6 +23,7 @@ def main():
         index_col=0)
 
     data = data.transpose()
+
     del data['Response']
     del data['Remission']
     del data['FileGroup']
@@ -30,6 +31,7 @@ def main():
     del data['TimePoint']
     del data['(ng/ml/mg CIT dose)']
     del data['%improvement']
+
     # num_patients = np.count_nonzero(pd.unique(data.values[:, 0]))
     # num_attributes = np.count_nonzero(pd.unique(data.values[0]))
 
