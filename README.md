@@ -7,8 +7,12 @@ Precision Medicine for Increased Treatment Efficacy
  pip install -r requirements.txt
  ```
 
- Running the script:
- To initialize and train the network run:
+###Running the scripts:
+ To train the studies on gender and predict that run:
  ```
- python train.py
+ train_citalopram_gender.py
+ ```
+ or
+  ```
+ train_duloxetine_gender.py
  ```
