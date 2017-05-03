@@ -8,7 +8,7 @@ import theano.tensor as T
 
 from src.net import Network
 
-from src.utils import get_modified_truth
+from src.utils import get_one_hot
 
 
 def main():
@@ -31,7 +31,7 @@ def main():
     del data['id partiel']
     del data['id ']
 
-    del data['race']
+    # del data['race']
     del data['%']
     del data['study']
     del data['RIN']
@@ -39,8 +39,12 @@ def main():
     # num_patients = np.count_nonzero(pd.unique(data.values[:, 0]))
     # num_attributes = np.count_nonzero(pd.unique(data.values[0]))
 
+    # Turn categorical data into numerical forms
+    data['race'] = data['race'].astype('category')
+    data['race'] = data['race'].cat.codes
+
     data['Sex'] = data['Sex'].astype('category')
-    gender_data = get_modified_truth(data['Sex'])
+    gender_data = get_one_hot(data['Sex'])
     train_id = np.array(data['ID'])
 
     del data['Sex']
@@ -93,7 +97,12 @@ def main():
     # dense_net.save_record(save_path='records')
 
     # Use to get a function to get output of network
-    # test_fn = theano.function([input_var], lasagne.layers.get_output(network))
+    '''
+    test_out = dense_net.forward_pass(
+        input_data=val_x,
+        convert_to_class=False
+    )
+    '''
 
 if __name__ == "__main__":
     main()

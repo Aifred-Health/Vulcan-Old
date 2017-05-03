@@ -33,6 +33,9 @@ class Network(object):
         self.network = self.create_dense_network()
         self.trainer = self.create_trainer()
         self.validator = self.create_validator()
+        self.output = theano.function(
+            [self.input_var],
+            lasagne.layers.get_output(self.network))
         self.record = None
 
     def create_dense_network(self):
@@ -138,6 +141,25 @@ class Network(object):
 
         return theano.function([self.input_var, self.y], [val_loss, val_acc])
 
+    def forward_pass(self, input_data, convert_to_class=True):
+        """
+        Allow the implementer to quickly get outputs from the network.
+
+        Args:
+            input_data: Numpy matrix to make the predictions on
+            get_predictions: If the output should return the class with highest probability
+
+        Returns: Numpy matrix with the output probabilities
+                 with each class unless otherwise specified.
+        """
+        if convert_to_class:
+            return np.expand_dims(
+                np.argmax(self.output(input_data), axis=1),
+                axis=1
+            )
+        else:
+            return self.output(input_data)
+
     def train(self, epochs, train_x, train_y, val_x, val_y, plot=True):
         """
         Train the network.
@@ -165,7 +187,10 @@ class Network(object):
 
         for epoch in range(epochs):
             epoch_time = time.time()
-            print ("--> Epoch: %d | Epochs left %d" % (epoch, epochs - epoch - 1))
+            print ("--> Epoch: %d | Epochs left %d" % (
+                epoch,
+                epochs - epoch - 1
+            ))
 
             self.trainer(train_x, train_y)
             train_error, train_accuracy = self.validator(train_x, train_y)

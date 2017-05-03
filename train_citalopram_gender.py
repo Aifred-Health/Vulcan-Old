@@ -85,7 +85,12 @@ def main():
     # dense_net.save_record(save_path='records')
 
     # Use to get a function to get output of network
-    # test_fn = theano.function([input_var], lasagne.layers.get_output(network))
+    '''
+    test_out = dense_net.forward_pass(
+        input_data=val_x,
+        convert_to_class=False
+    )
+    '''
 
 if __name__ == "__main__":
     main()
