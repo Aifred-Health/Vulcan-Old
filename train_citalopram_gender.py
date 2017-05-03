@@ -8,7 +8,7 @@ import theano.tensor as T
 
 from src.net import Network
 
-from src.utils import get_modified_truth
+from src.utils import get_one_hot
 
 
 def main():
@@ -36,7 +36,7 @@ def main():
     # num_attributes = np.count_nonzero(pd.unique(data.values[0]))
 
     data['Gender'] = data['Gender'].astype('category')
-    gender_data = get_modified_truth(data['Gender'])
+    gender_data = get_one_hot(data['Gender'])
     train_id = np.array(data['id_response'])
 
     del data['Gender']

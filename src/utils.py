@@ -8,7 +8,7 @@ import pickle
 import matplotlib.pyplot as plt
 
 
-def get_modified_truth(in_matrix):
+def get_one_hot(in_matrix):
     """
     Reformat truth matrix to be the same size as the output of the dense network.
 
