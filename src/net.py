@@ -45,6 +45,8 @@ class Network(object):
         Args:
             dimension: the size of the incoming theano tensor
             input_var: a theano tensor representing your data input
+            units: The list of number of nodes to have at each layer, respectively
+            dropout: The list of dropout probabilities to have at each layer, respectively
 
         Returns: the output of the network (linked up to all the layers)
         """
