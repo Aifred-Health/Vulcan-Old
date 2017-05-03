@@ -49,7 +49,7 @@ class Network(object):
         Returns: the output of the network (linked up to all the layers)
         """
         if len(units) != len(dropout):
-            print ("Cannot build network since units and dropout components don't match up")
+            print ("Cannot build network since units and dropout components don't match up.")
             return
 
         print ("Creating Network...")
@@ -60,15 +60,22 @@ class Network(object):
 
         print ('\tHidden Layer:')
         for (num_units, prob_dropout) in zip(units, dropout):
-            network = lasagne.layers.DenseLayer(network,
-                                                num_units=num_units,
-                                                nonlinearity=lasagne.nonlinearities.rectify)
-            network = lasagne.layers.DropoutLayer(network, p=prob_dropout)
+            network = lasagne.layers.DenseLayer(
+                network,
+                num_units=num_units,
+                nonlinearity=lasagne.nonlinearities.rectify
+            )
+            network = lasagne.layers.DropoutLayer(
+                network,
+                p=prob_dropout
+            )
             print '\t\t', lasagne.layers.get_output_shape(network)
 
-        network = lasagne.layers.DenseLayer(network,
-                                            num_units=2,
-                                            nonlinearity=lasagne.nonlinearities.softmax)
+        network = lasagne.layers.DenseLayer(
+            network,
+            num_units=2,
+            nonlinearity=lasagne.nonlinearities.softmax
+        )
 
         print ('\tOutput Layer:')
         print '\t\t', lasagne.layers.get_output_shape(network)
