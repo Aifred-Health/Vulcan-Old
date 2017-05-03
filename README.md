@@ -7,7 +7,7 @@ Precision Medicine for Increased Treatment Efficacy
  pip install -r requirements.txt
  ```
 
-### Running the scripts:
+## Running the scripts:
  To train the studies on gender and predict that run:
  ```
  train_citalopram_gender.py
