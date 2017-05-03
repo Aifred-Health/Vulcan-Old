@@ -38,7 +38,7 @@ class Network(object):
             lasagne.layers.get_output(self.network))
         self.record = None
 
-    def create_dense_network(self):
+    def create_dense_network(self, units=[4096, 2048, 1024], dropout=[0.5, 0.5, 0.5]):
         """
         Generate a fully connected layer.
 
@@ -48,6 +48,10 @@ class Network(object):
 
         Returns: the output of the network (linked up to all the layers)
         """
+        if len(units) != len(dropout):
+            print ("Cannot build network since units and dropout components don't match up")
+            return
+
         print ("Creating Network...")
         print ('\tInput Layer:')
         network = lasagne.layers.InputLayer(shape=self.dimensions,
@@ -55,23 +59,12 @@ class Network(object):
         print '\t\t', lasagne.layers.get_output_shape(network)
 
         print ('\tHidden Layer:')
-        network = lasagne.layers.DenseLayer(network,
-                                            num_units=4096,
-                                            nonlinearity=lasagne.nonlinearities.rectify)
-        network = lasagne.layers.DropoutLayer(network, p=0.5)
-        print '\t\t', lasagne.layers.get_output_shape(network)
-
-        network = lasagne.layers.DenseLayer(network,
-                                            num_units=2048,
-                                            nonlinearity=lasagne.nonlinearities.rectify)
-        network = lasagne.layers.DropoutLayer(network, p=0.5)
-        print '\t\t', lasagne.layers.get_output_shape(network)
-
-        network = lasagne.layers.DenseLayer(network,
-                                            num_units=1024,
-                                            nonlinearity=lasagne.nonlinearities.rectify)
-        network = lasagne.layers.DropoutLayer(network, p=0.5)
-        print '\t\t', lasagne.layers.get_output_shape(network)
+        for (num_units, prob_dropout) in zip(units, dropout):
+            network = lasagne.layers.DenseLayer(network,
+                                                num_units=num_units,
+                                                nonlinearity=lasagne.nonlinearities.rectify)
+            network = lasagne.layers.DropoutLayer(network, p=prob_dropout)
+            print '\t\t', lasagne.layers.get_output_shape(network)
 
         network = lasagne.layers.DenseLayer(network,
                                             num_units=2,
