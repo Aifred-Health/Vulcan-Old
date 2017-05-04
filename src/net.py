@@ -29,7 +29,7 @@ class Network(object):
             units: The list of number of nodes to have at each layer
             dropout: The list of dropout probabilities to have at each layer
             input_network: append networks together (must be of type Network)
-            classifier: boolean representing if this network should classify
+            num_classes: None or int. how many classes to predict
         """
         self.name = name
         self.dimensions = dimensions
@@ -40,7 +40,7 @@ class Network(object):
             units=units,
             dropouts=dropouts
         )
-        if num_classes is not None or num_classes != 0:
+        if num_classes is not None and num_classes != 0:
             self.network = self.create_classification_layer(
                 self.network,
                 num_classes=num_classes
@@ -69,7 +69,7 @@ class Network(object):
             print ("Cannot build network: units and dropouts don't correspond")
             return
 
-        print ("Creating Network...")
+        print ("Creating %s Network..." % self.name)
         if self.input_network is None:
             print ('\tInput Layer:')
             network = lasagne.layers.InputLayer(shape=self.dimensions,
@@ -83,7 +83,7 @@ class Network(object):
         print ('\tHidden Layer:')
         for (num_units, prob_dropout) in zip(units, dropouts):
             network = lasagne.layers.DenseLayer(
-                network,
+                incoming=network,
                 num_units=num_units,
                 nonlinearity=lasagne.nonlinearities.rectify
             )
@@ -107,7 +107,7 @@ class Network(object):
         """
         print ('\tOutput Layer:')
         network = lasagne.layers.DenseLayer(
-            network,
+            incoming=network,
             num_units=num_classes,
             nonlinearity=lasagne.nonlinearities.softmax
         )
@@ -127,7 +127,7 @@ class Network(object):
         Returns: theano function that takes as input (train_x,train_y)
                  and trains the net
         """
-        print ("Creating Trainer...")
+        print ("Creating %s Trainer..." % self.name)
         # get network output
         out = lasagne.layers.get_output(self.network)
         # get all trainable parameters from network
@@ -136,8 +136,8 @@ class Network(object):
         cost = T.nnet.categorical_crossentropy(out, self.y).mean()
         # calculate updates using ADAM optimization gradient descent
         updates = lasagne.updates.adam(
-            cost,
-            params,
+            loss_or_grads=cost,
+            params=params,
             learning_rate=0.001,
             beta1=0.9,
             beta2=0.999,
@@ -158,7 +158,7 @@ class Network(object):
         Returns: theano function that takes input (train_x,train_y)
                  and returns error and accuracy
         """
-        print ("Creating Validator...")
+        print ("Creating %s Validator..." % self.name)
         # create prediction
         val_prediction = lasagne.layers.get_output(
             self.network,
@@ -209,6 +209,7 @@ class Network(object):
             plot: boolean if training curves should be plotted while training
 
         """
+        # TODO: implement ETA using epoch time averages and how many left
         print ('\nTraining %s in progress...\n' % self.name)
 
         self.record = dict(
@@ -238,10 +239,11 @@ class Network(object):
             self.record['train_accuracy'].append(train_accuracy)
             self.record['validation_error'].append(validation_error)
             self.record['validation_accuracy'].append(validation_accuracy)
+            epoch_time_spent = time.time() - epoch_time
             print ("    error: %s and accuracy: %s in %.2fs\n" % (
                 train_error,
                 train_accuracy,
-                time.time() - epoch_time)
+                epoch_time_spent)
             )
 
             if plot:

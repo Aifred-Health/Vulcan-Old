@@ -17,42 +17,30 @@ def main():
     train_reserve = 0.7
 
     data = pd.read_csv(
-        'data/Duloxetine_study.csv',
+        'data/Citalopram_study.csv',
         low_memory='false',
         header=None,
         index_col=0)
 
     data = data.transpose()
 
-    del data['response']
-    del data['remission']
-    del data['ID_complet']
-    del data['num']
-    del data['id partiel']
-    del data['id ']
-
-    # del data['race']
-    del data['%']
-    del data['study']
-    del data['RIN']
+    del data['Response']
+    del data['Remission']
+    del data['FileGroup']
+    del data['Accession Id']
+    del data['TimePoint']
+    del data['(ng/ml/mg CIT dose)']
+    del data['%improvement']
 
     # num_patients = np.count_nonzero(pd.unique(data.values[:, 0]))
     # num_attributes = np.count_nonzero(pd.unique(data.values[0]))
 
-    # Turn categorical data into numerical forms
-    data['race'] = data['race'].astype('category')
-    data['race'] = data['race'].cat.codes
+    data['Gender'] = data['Gender'].astype('category')
+    gender_data = get_one_hot(data['Gender'])
+    train_id = np.array(data['id_response'])
 
-    data['Sex'] = data['Sex'].astype('category')
-    gender_data = get_one_hot(data['Sex'])
-    train_id = np.array(data['ID'])
-
-    del data['Sex']
-    del data['ID']
-
-    # Turn the height and weight values to decimals and remove the commas
-    data['taille'] = [x.replace(',', '.') for x in data['taille']]
-    data['poids'] = [x.replace(',', '.') for x in data['poids']]
+    del data['Gender']
+    del data['id_response']
 
     data = data.astype('float32')
     data = np.array(data)
@@ -71,8 +59,8 @@ def main():
     input_var = T.fmatrix('input')
     y = T.fmatrix('truth')
 
-    res_net = Network(
-        name='3_res',
+    generator = Network(
+        name='generator',
         dimensions=(None, int(train_x.shape[1])),
         input_var=input_var,
         y=y,
@@ -82,14 +70,14 @@ def main():
         num_classes=None
     )
 
-    dense_net = Network(
-        name='3_dense',
+    discriminator = Network(
+        name='discriminator',
         dimensions=(None, int(train_x.shape[1])),
         input_var=input_var,
         y=y,
         units=[4096, 2048, 1024],
         dropouts=[0.5, 0.5, 0.5],
-        input_network=res_net,
+        input_network=generator,
         num_classes=2
     )
 
@@ -115,7 +103,7 @@ def main():
     '''
     test_out = dense_net.forward_pass(
         input_data=val_x,
-        convert_to_class=True
+        convert_to_class=False
     )
     '''
 
