@@ -1,5 +1,7 @@
-# AIfred
-Precision Medicine for Increased Treatment Efficacy
+# aifred
+Clinical Decision Aid for Increased Treatment Efficacy
+
+Mental health is an integral part of our well-being and how we function within society. aifred aims to bring personalized treatments at scale by combining best practices from psychiatry and deep learning.
 
 ## Dependencies
  Simply run:
