@@ -74,7 +74,7 @@ def main():
     # dense_net.load_model(load_path='models/3_dense.npz')
 
     dense_net.train(
-        epochs=10,
+        epochs=100,
         train_x=train_x,
         train_y=train_y,
         val_x=val_x,

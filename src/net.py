@@ -240,11 +240,15 @@ class Network(object):
             self.record['validation_error'].append(validation_error)
             self.record['validation_accuracy'].append(validation_accuracy)
             epoch_time_spent = time.time() - epoch_time
-            print ("    error: %s and accuracy: %s in %.2fs\n" % (
+            print ("    error: %s and accuracy: %s in %.2fs" % (
                 train_error,
                 train_accuracy,
                 epoch_time_spent)
             )
+            eta = epoch_time_spent * (epochs - epoch - 1)
+            minute, second = divmod(eta, 60)
+            hour, minute = divmod(minute, 60)
+            print ("    ETA: %d:%02d:%02d (h:m:s)\n" % (hour, minute, second))
 
             if plot:
                 plt.plot(
