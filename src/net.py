@@ -15,6 +15,8 @@ import theano.tensor as T
 
 from utils import get_class
 
+from scipy import integrate
+
 
 class Network(object):
     """Class to generate networks and train them."""
@@ -209,7 +211,6 @@ class Network(object):
             plot: boolean if training curves should be plotted while training
 
         """
-        # TODO: implement ETA using epoch time averages and how many left
         print ('\nTraining %s in progress...\n' % self.name)
 
         self.record = dict(
@@ -303,7 +304,7 @@ class Network(object):
         raw_prediction = self.forward_pass(input_data=test_x,
                                            convert_to_class=False)
         threshold = 0.0
-        x = y = []
+        x = y = np.array([])
         while (threshold < 1.0):
             prediction = np.where(raw_prediction > threshold, 1.0, 0.0)
             prediction = get_class(prediction)
@@ -320,8 +321,8 @@ class Network(object):
             sensitivity = tp / (tp + fn)
             specificity = tn / (tn + fp)
 
-            x.append(sensitivity)
-            y.append(specificity)
+            x = np.append(x, 1.0 - specificity)
+            y = np.append(y, sensitivity)
 
             if abs(threshold - 0.5) < 1e-08:
                 accuracy = (tp + tn) / (tp + fp + tn + fn)
@@ -332,6 +333,8 @@ class Network(object):
                 npv = tn / (tn + fn) if tn > 0 else 0.0
 
             threshold += 0.01
+
+        auc = integrate.trapz(y, x)  # NEEDS REPAIR
 
         print ('%s test\'s results' % self.name)
 
@@ -345,10 +348,13 @@ class Network(object):
 
         plt.figure(2)
         plt.ion()
-        plt.plot(x, y)
+        plt.plot(x, y, label=("AUC: %.4f" % auc))
         plt.title("ROC Curve for %s" % self.name)
-        plt.xlabel('sensitivity')
-        plt.ylabel('specificity')
+        plt.xlabel('1 - specificity')
+        plt.ylabel('sensitivity')
+        plt.legend(loc='lower right')
+        plt.ylim(0.0, 1.0)
+        plt.xlim(0.0, 1.0)
         plt.show()
 
         if not os.path.exists('figures'):
