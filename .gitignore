@@ -1,4 +1,6 @@
 data
+figures
+*.png
 *.csv
 *.npz
 *.pickle
