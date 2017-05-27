@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 import theano
 import theano.tensor as T
 
+from utils import get_class
+
 
 class Network(object):
     """Class to generate networks and train them."""
@@ -40,6 +42,7 @@ class Network(object):
             units=units,
             dropouts=dropouts
         )
+        self.num_classes = num_classes
         if num_classes is not None and num_classes != 0:
             self.network = self.create_classification_layer(
                 self.network,
@@ -189,10 +192,7 @@ class Network(object):
                  with each class unless otherwise specified.
         """
         if convert_to_class:
-            return np.expand_dims(
-                np.argmax(self.output(input_data), axis=1),
-                axis=1
-            )
+            return get_class(self.output(input_data))
         else:
             return self.output(input_data)
 
@@ -221,6 +221,7 @@ class Network(object):
         )
         if plot:
             plt.ion()
+            plt.figure(1)
 
         for epoch in range(epochs):
             epoch_time = time.time()
@@ -283,6 +284,82 @@ class Network(object):
 
                 plt.show()
                 plt.pause(0.0001)
+
+        if not os.path.exists('figures'):
+            print ('Creating figures folder')
+            os.makedirs('figures')
+        plt.savefig('figures/%s_training.png' % self.name)
+
+    def conduct_test(self, test_x, test_y):
+        """
+        Will conduct the test suite to determine model strength.
+
+        Args:
+            test_x: data the model has not yet seen to predict
+            test_y: corresponding truth vectors
+        """
+        if self.num_classes is None or self.num_classes == 0:
+            print ('Cannot conduct test: there\'s no classification layer')
+            return
+
+        if test_y.shape[1] > 1:
+            test_y = get_class(test_y)  # Y is in one hot representation
+
+        raw_prediction = self.forward_pass(input_data=test_x,
+                                           convert_to_class=False)
+        threshold = 0.0
+        x = y = []
+        while (threshold < 1.0):
+            prediction = np.where(raw_prediction > threshold, 1.0, 0.0)
+            prediction = get_class(prediction)
+
+            tp = float(np.sum(np.logical_and(prediction == 1.0,
+                                             test_y == 1.0)))
+            tn = float(np.sum(np.logical_and(prediction == 0.0,
+                                             test_y == 0.0)))
+            fp = float(np.sum(np.logical_and(prediction == 1.0,
+                                             test_y == 0.0)))
+            fn = float(np.sum(np.logical_and(prediction == 0.0,
+                                             test_y == 1.0)))
+
+            sensitivity = tp / (tp + fn)
+            specificity = tn / (tn + fp)
+
+            x.append(sensitivity)
+            y.append(specificity)
+
+            if abs(threshold - 0.5) < 1e-08:
+                accuracy = (tp + tn) / (tp + fp + tn + fn)
+                sens = tp / (tp + fn) if tp > 0 else 0.0
+                spec = tn / (tn + fp) if tn > 0 else 0.0
+                dice = 2 * tp / (2 * tp + fp + fn)
+                ppv = tp / (tp + fp) if tp > 0 else 0.0
+                npv = tn / (tn + fn) if tn > 0 else 0.0
+
+            threshold += 0.01
+
+        print ('%s test\'s results' % self.name)
+
+        print ('\tTP: %i, FP: %i, TN: %i, FN: %i' % (tp, fp, tn, fn))
+        print ('\tAccuracy: %.4f' % accuracy)
+        print ('\tSensitivity: %.4f' % sens)
+        print ('\tSpecificity: %.4f' % spec)
+        print ('\tDICE: %.4f' % dice)
+        print ('\tPositive Predictive Value: %.4f' % ppv)
+        print ('\tNegative Predictive Value: %.4f' % npv)
+
+        plt.figure(2)
+        plt.ion()
+        plt.plot(x, y)
+        plt.title("ROC Curve for %s" % self.name)
+        plt.xlabel('sensitivity')
+        plt.ylabel('specificity')
+        plt.show()
+
+        if not os.path.exists('figures'):
+            print ('Creating figures folder')
+            os.makedirs('figures')
+        plt.savefig('figures/%s_ROC.png' % self.name)
 
     def save_model(self, save_path):
         """

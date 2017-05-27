@@ -74,13 +74,16 @@ def main():
     # dense_net.load_model(load_path='models/3_dense.npz')
 
     dense_net.train(
-        epochs=100,
+        epochs=10,
         train_x=train_x,
         train_y=train_y,
         val_x=val_x,
         val_y=val_y,
         plot=True
     )
+
+    # Use to run the test suite on the model
+    # dense_net.conduct_test(test_x=val_x, test_y=val_y)
 
     # Use to save model parameters to disk
     # dense_net.save_model(save_path='models')
