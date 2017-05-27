@@ -285,11 +285,6 @@ class Network(object):
                 plt.show()
                 plt.pause(0.0001)
 
-        if not os.path.exists('figures'):
-            print ('Creating figures folder')
-            os.makedirs('figures')
-        plt.savefig('figures/%s_training.png' % self.name)
-
     def conduct_test(self, test_x, test_y):
         """
         Will conduct the test suite to determine model strength.
