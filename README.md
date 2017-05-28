@@ -6,7 +6,7 @@ Mental health is an integral part of our well-being and how we function within s
 ## Dependencies
  Simply run:
  ```
- pip install -r requirements.txt
+ sudo pip install -r requirements.txt
  ```
 
 ## Running the scripts:

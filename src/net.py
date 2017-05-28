@@ -408,7 +408,7 @@ class Network(object):
             file_path = os.path.join(save_path, self.name)
             print ('Saving records as: %s_stats.pickle' % file_path)
             with open('%s_stats.pickle' % file_path, 'w') as output:
-                pickle.dump(self.record, output)
+                pickle.dump(self.record, output, -1)
         else:
             print ("Error: Nothing to save. Try training the model first.")
 
