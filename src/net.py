@@ -332,20 +332,21 @@ class Network(object):
                 ppv = tp / (tp + fp) if tp > 0 else 0.0
                 npv = tn / (tn + fn) if tn > 0 else 0.0
 
+                print ('%s test\'s results' % self.name)
+
+                print ('\tTP: %i, FP: %i, TN: %i, FN: %i' % (tp, fp, tn, fn))
+                print ('\tAccuracy: %.4f' % accuracy)
+                print ('\tSensitivity: %.4f' % sens)
+                print ('\tSpecificity: %.4f' % spec)
+                print ('\tDICE: %.4f' % dice)
+                print ('\tPositive Predictive Value: %.4f' % ppv)
+                print ('\tNegative Predictive Value: %.4f' % npv)
+
             threshold += 0.01
 
         auc = integrate.trapz(y, x)  # NEEDS REPAIR
 
-        print ('%s test\'s results' % self.name)
-
-        print ('\tTP: %i, FP: %i, TN: %i, FN: %i' % (tp, fp, tn, fn))
-        print ('\tAccuracy: %.4f' % accuracy)
-        print ('\tSensitivity: %.4f' % sens)
-        print ('\tSpecificity: %.4f' % spec)
-        print ('\tDICE: %.4f' % dice)
-        print ('\tPositive Predictive Value: %.4f' % ppv)
-        print ('\tNegative Predictive Value: %.4f' % npv)
-
+        print ('\tGenerating ROC ...')
         plt.figure(2)
         plt.ion()
         plt.plot(x, y, label=("AUC: %.4f" % auc))
@@ -360,6 +361,7 @@ class Network(object):
         if not os.path.exists('figures'):
             print ('Creating figures folder')
             os.makedirs('figures')
+        print ('\tSaving figure to file: figures/%s_ROC.png' % self.name)
         plt.savefig('figures/%s_ROC.png' % self.name)
 
     def save_model(self, save_path):

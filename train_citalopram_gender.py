@@ -45,6 +45,7 @@ def main():
     data = data.astype('float32')
     data = np.array(data)
 
+    # data = data[:, :5]
     # Used to shuffle matrices in unison
     permutation = np.random.permutation(data.shape[0])
     data = data[permutation]
@@ -65,23 +66,22 @@ def main():
         input_var=input_var,
         y=y,
         units=[4096, 2048, 1024],
-        dropouts=[0.5, 0.5, 0.5],
+        dropouts=[0.2, 0.2, 0.2],
         input_network=None,
         num_classes=2
     )
-
     # Use to load model from disk
     # dense_net.load_model(load_path='models/3_dense.npz')
 
     dense_net.train(
-        epochs=10,
+        epochs=100,
         train_x=train_x,
         train_y=train_y,
         val_x=val_x,
         val_y=val_y,
         plot=True
     )
-
+    dense_net.conduct_test(test_x=val_x, test_y=val_y)
     # Use to run the test suite on the model
     # dense_net.conduct_test(test_x=val_x, test_y=val_y)
 
@@ -95,7 +95,7 @@ def main():
     '''
     test_out = dense_net.forward_pass(
         input_data=val_x,
-        convert_to_class=False
+        convert_to_class=True
     )
     '''
 
