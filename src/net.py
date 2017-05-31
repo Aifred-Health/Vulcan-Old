@@ -36,6 +36,7 @@ class Network(object):
             num_classes: None or int. how many classes to predict
         """
         self.name = name
+        self.layers = []
         self.dimensions = dimensions
         self.input_var = input_var
         self.y = y
@@ -80,6 +81,7 @@ class Network(object):
             network = lasagne.layers.InputLayer(shape=self.dimensions,
                                                 input_var=self.input_var)
             print '\t\t', lasagne.layers.get_output_shape(network)
+            self.layers.append(network)
         else:
             network = self.input_network.network
             print ('Appending %s to %s.' % (self.name,
@@ -92,10 +94,17 @@ class Network(object):
                 num_units=num_units,
                 nonlinearity=lasagne.nonlinearities.rectify
             )
+            network.add_param(
+                network.W,
+                network.W.get_value().shape,
+                trainable=False
+            )
+            self.layers.append(network)
             network = lasagne.layers.DropoutLayer(
                 network,
                 p=prob_dropout
             )
+            self.layers.append(network)
             print '\t\t', lasagne.layers.get_output_shape(network)
 
         return network
@@ -117,7 +126,7 @@ class Network(object):
             nonlinearity=lasagne.nonlinearities.softmax
         )
         print '\t\t', lasagne.layers.get_output_shape(network)
-
+        self.layers.append(network)
         return network
 
     def create_trainer(self):

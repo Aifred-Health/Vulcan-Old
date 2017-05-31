@@ -81,10 +81,11 @@ def main():
         num_classes=2
     )
 
+    import pudb; pu.db
     # Use to load model from disk
     # dense_net.load_model(load_path='models/3_dense.npz')
 
-    dense_net.train(
+    discriminator.train(
         epochs=10,
         train_x=train_x,
         train_y=train_y,
