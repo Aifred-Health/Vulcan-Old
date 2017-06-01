@@ -1,3 +1,4 @@
+#!/usr/bin/python2
 """Contains the class for creating networks."""
 
 import time
@@ -79,7 +80,8 @@ class Network(object):
         if self.input_network is None:
             print ('\tInput Layer:')
             network = lasagne.layers.InputLayer(shape=self.dimensions,
-                                                input_var=self.input_var)
+                                                input_var=self.input_var,
+                                                name="%s_input" % self.name)
             print '\t\t', lasagne.layers.get_output_shape(network)
             self.layers.append(network)
         else:
@@ -88,21 +90,29 @@ class Network(object):
                                             self.input_network.name))
 
         print ('\tHidden Layer:')
-        for (num_units, prob_dropout) in zip(units, dropouts):
+        for i, (num_units, prob_dropout) in enumerate(zip(units, dropouts)):
             network = lasagne.layers.DenseLayer(
                 incoming=network,
                 num_units=num_units,
-                nonlinearity=lasagne.nonlinearities.rectify
+                nonlinearity=lasagne.nonlinearities.rectify,
+                name="%s_dense_%i" % (self.name, i)
             )
             network.add_param(
                 network.W,
                 network.W.get_value().shape,
-                trainable=False
+                exec (u'%s = True' % self.name)
+            )
+            network.add_param(
+                network.b,
+                network.b.get_value().shape,
+                exec(self.tag)
             )
             self.layers.append(network)
+
             network = lasagne.layers.DropoutLayer(
-                network,
-                p=prob_dropout
+                incoming=network,
+                p=prob_dropout,
+                name="%s_dropout_%i" % (self.name, i)
             )
             self.layers.append(network)
             print '\t\t', lasagne.layers.get_output_shape(network)
@@ -123,7 +133,18 @@ class Network(object):
         network = lasagne.layers.DenseLayer(
             incoming=network,
             num_units=num_classes,
-            nonlinearity=lasagne.nonlinearities.softmax
+            nonlinearity=lasagne.nonlinearities.softmax,
+            name="%s_softmax" % self.name
+        )
+        network.add_param(
+            network.W,
+            network.W.get_value().shape,
+            exec(self.tag)
+        )
+        network.add_param(
+            network.b,
+            network.b.get_value().shape,
+            exec(self.tag)
         )
         print '\t\t', lasagne.layers.get_output_shape(network)
         self.layers.append(network)
@@ -145,7 +166,13 @@ class Network(object):
         # get network output
         out = lasagne.layers.get_output(self.network)
         # get all trainable parameters from network
-        params = lasagne.layers.get_all_params(self.network, trainable=True)
+        params = lasagne.layers.get_all_params(
+            self.network,
+            trainable=True,
+            exec(self.tag)
+        )
+        #if self.name=='discriminator':
+        import pudb; pu.db 
         # calculate a loss function which has to be a scalar
         cost = T.nnet.categorical_crossentropy(out, self.y).mean()
         # calculate updates using ADAM optimization gradient descent

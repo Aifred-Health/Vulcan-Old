@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 import theano.tensor as T
+from theano.tensor.shared_randomstreams import RandomStreams
 
 from src.net import Network
 
@@ -81,7 +82,9 @@ def main():
         num_classes=2
     )
 
-    import pudb; pu.db
+    srng = RandomStreams(seed=234)
+
+    #import pudb; pu.db
     # Use to load model from disk
     # dense_net.load_model(load_path='models/3_dense.npz')
 
