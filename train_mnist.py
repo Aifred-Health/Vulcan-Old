@@ -13,6 +13,11 @@ import gzip
 import os
 
 import shutil
+train_images = None
+train_labels = None
+t10k_images = None
+train_labels = None
+
 
 if os.path.exists("data/"):
     print "data folder already exists"
@@ -22,6 +27,7 @@ else:
 
 if os.path.exists("data/train-images-idx3-ubyte.npy"):
     print "MNIST train images already exist."
+    train_images = np.load("data/train-images-idx3-ubyte.npy")
 else:
     print "Downloading MNIST train images..."
     testfile = urllib.URLopener()
@@ -41,6 +47,7 @@ else:
 
 if os.path.exists("data/train-labels-idx1-ubyte.npy"):
     print "MNIST train labels already exist."
+    train_labels = np.load("data/train-labels-idx1-ubyte.npy")
 else:
     print "Downloading MNIST train labels..."
     testfile = urllib.URLopener()
@@ -58,8 +65,9 @@ else:
     train_labels = np.load('data/train-images-idx3-ubyte.npy')
     os.remove('data/train-labels-idx1-ubyte')
 
-if os.path.exists("t10k-images-idx3-ubyte.npy"):
+if os.path.exists("data/t10k-images-idx3-ubyte.npy"):
     print "MNIST t10k images already exist."
+    t10k_images = np.load("data/t10k-images-idx3-ubyte.npy")
 else:
     print "Downloading MNIST t10k images..."
     testfile = urllib.URLopener()
@@ -77,8 +85,9 @@ else:
     t10k_images = np.load('data/t10k-images-idx3-ubyte.npy')
     os.remove('data/t10k-images-idx3-ubyte')
 
-if os.path.exists("t10k-labels-idx1-ubyte.npy"):
+if os.path.exists("data/t10k-labels-idx1-ubyte.npy"):
     print "MNIST t10k labels exist"
+    t10k_labels = np.load("data/t10k-labels-idx1-ubyte.npy")
 else:
     print "Downloading MNIST t10k labels..."
     testfile = urllib.URLopener()
@@ -97,6 +106,10 @@ else:
     os.remove('data/t10k-labels-idx1-ubyte')
 
 
+print train_images.shape
+print train_labels.shape
+print t10k_images.shape
+print t10k_labels.shape
 
 
 
