@@ -47,28 +47,28 @@ else:
     print "Creating data folder"
     os.makedirs("data/")
 
-if os.path.exists("data/train-images-idx3-ubyte.npy"):
+if os.path.exists("data/train-images-idx3-ubyte.gz"):
     print "MNIST train images already exist."
-    train_images = load_image("data/train-images-idx3-ubyte.npy")
+    train_images = load_image("data/train-images-idx3-ubyte.gz")
 else:
     download_file("http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz")
     train_images = load_image('data/train-images-idx3-ubyte.gz')
 
-if os.path.exists("data/train-labels-idx1-ubyte.npy"):
+if os.path.exists("data/train-labels-idx1-ubyte.gz"):
     print "MNIST train labels already exist."
     train_labels = load_label("data/train-labels-idx1-ubyte.gz")
 else:
     download_file("http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz")
     train_labels = load_label('data/train-labels-idx1-ubyte.gz')
 
-if os.path.exists("data/t10k-images-idx3-ubyte.npy"):
+if os.path.exists("data/t10k-images-idx3-ubyte.gz"):
     print "MNIST t10k images already exist."
     t10k_images = load_image("data/t10k-images-idx3-ubyte.gz")
 else:
     download_file("http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz")
     t10k_images = load_image('data/t10k-images-idx3-ubyte.gz')
 
-if os.path.exists("data/t10k-labels-idx1-ubyte.npy"):
+if os.path.exists("data/t10k-labels-idx1-ubyte.gz"):
     print "MNIST t10k labels already exist"
     t10k_labels = load_label("data/t10k-labels-idx1-ubyte.gz")
 else:
@@ -79,6 +79,7 @@ print train_images.shape
 print train_labels.shape
 print t10k_images.shape
 print t10k_labels.shape
+
 
 
 
