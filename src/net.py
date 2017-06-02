@@ -14,6 +14,7 @@ import theano
 import theano.tensor as T
 
 from utils import get_class
+from utils import display_record
 
 from scipy import integrate
 
@@ -250,41 +251,11 @@ class Network(object):
             eta = epoch_time_spent * (epochs - epoch - 1)
             minute, second = divmod(eta, 60)
             hour, minute = divmod(minute, 60)
-            print ("    ETA: %d:%02d:%02d (h:m:s)\n" % (hour, minute, second))
+            print ("    Estimated time left: %d:%02d:%02d (h:m:s)\n"
+                   % (hour, minute, second))
 
             if plot:
-                plt.plot(
-                    self.record['epoch'],
-                    self.record['train_error'],
-                    '-mo',
-                    label='Train Error' if epoch == 0 else ""
-                )
-                plt.plot(
-                    self.record['epoch'],
-                    self.record['train_accuracy'],
-                    '-go',
-                    label='Train Accuracy' if epoch == 0 else ""
-                )
-                plt.plot(
-                    self.record['epoch'],
-                    self.record['validation_error'],
-                    '-ro',
-                    label='Validation Error' if epoch == 0 else ""
-                )
-                plt.plot(
-                    self.record['epoch'],
-                    self.record['validation_accuracy'],
-                    '-bo',
-                    label='Validation Accuracy' if epoch == 0 else ""
-                )
-                plt.xlabel("Epoch")
-                plt.ylabel("Cross entropy error")
-                # plt.ylim(0,1)
-                plt.title('Training curve for model: %s' % self.name)
-                plt.legend(loc='upper right')
-
-                plt.show()
-                plt.pause(0.0001)
+                display_record(record=self.record)
 
     def conduct_test(self, test_x, test_y):
         """

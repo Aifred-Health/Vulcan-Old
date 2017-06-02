@@ -51,35 +51,40 @@ def get_class(in_matrix):
     return np.expand_dims(np.argmax(in_matrix, axis=1), axis=1)
 
 
-def display_record(load_path):
+def display_record(record, load_path=None):
     """
     Display the training curve for a network training session.
 
     Args:
+        record: the record dictionary for dynamic graphs during training
         load_path: the saved record .pickle file to load
     """
-    with open(load_path) as in_file:
-        record = pickle.load(in_file)
+    if load_path is not None:
+        with open(load_path) as in_file:
+            record = pickle.load(in_file)
+        plt.title('Training curve for model: %s' % os.path.basename(load_path))
+    else:
+        plt.title('Training curve')
 
-    plt.plot(
+    train_error, = plt.plot(
         record['epoch'],
         record['train_error'],
         '-mo',
         label='Train Error'
     )
-    plt.plot(
+    train_accuracy, = plt.plot(
         record['epoch'],
         record['train_accuracy'],
         '-go',
         label='Train Accuracy'
     )
-    plt.plot(
+    validation_error, = plt.plot(
         record['epoch'],
         record['validation_error'],
         '-ro',
         label='Validation Error'
     )
-    plt.plot(
+    validation_accuracy, = plt.plot(
         record['epoch'],
         record['validation_accuracy'],
         '-bo',
@@ -88,7 +93,12 @@ def display_record(load_path):
     plt.xlabel("Epoch")
     plt.ylabel("Cross entropy error")
     # plt.ylim(0,1)
-    plt.title('Training curve for model: %s' % os.path.basename(load_path))
-    plt.legend(loc='upper right')
+
+    plt.legend(handles=[train_error,
+                        train_accuracy,
+                        validation_error,
+                        validation_accuracy],
+               loc=0)
 
     plt.show()
+    plt.pause(0.0001)
