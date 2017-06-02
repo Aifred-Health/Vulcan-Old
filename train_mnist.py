@@ -13,6 +13,9 @@ import gzip
 import os
 
 import shutil
+
+from src.utils import get_one_hot
+
 train_images = None
 train_labels = None
 t10k_images = None
@@ -79,6 +82,34 @@ print train_images.shape
 print train_labels.shape
 print t10k_images.shape
 print t10k_labels.shape
+
+train_labels = get_one_hot(train_labels)
+
+input_var = T.fmatrix('input')
+y = T.fmatrix('truth')
+
+dense_net = Network(
+    name='3_dense',
+    dimensions=(None, int(train_images.shape[1])),
+    input_var=input_var,
+    y=y,
+    units=[4096, 2048, 1024],
+    dropouts=[0.2, 0.2, 0.2],
+    input_network=None,
+    num_classes=10
+)
+# Use to load model from disk
+# dense_net.load_model(load_path='models/3_dense.npz')
+dense_net.train(
+    epochs=5,
+    train_x=train_images[:50000],
+    train_y=train_labels[:50000],
+    val_x=train_images[50000:60000],
+    val_y=train_labels[50000:60000],
+    plot=True
+)
+dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
+
 
 
 
