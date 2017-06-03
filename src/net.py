@@ -4,6 +4,8 @@ import time
 
 import os
 
+import sys
+
 import numpy as np
 
 import lasagne
@@ -199,7 +201,8 @@ class Network(object):
         else:
             return self.output(input_data)
 
-    def train(self, epochs, train_x, train_y, val_x, val_y, plot=True):
+    def train(self, epochs, train_x, train_y, val_x, val_y,
+              batch_ratio=0.1, plot=True):
         """
         Train the network.
 
@@ -209,6 +212,7 @@ class Network(object):
             train_y: the training truth
             val_x: the validation data (should not be also in train_x)
             val_y: the validation truth (should not be also in train_y)
+            batch_ratio: the percent (0-1) of how much data a batch should have
             plot: boolean if training curves should be plotted while training
 
         """
@@ -232,7 +236,19 @@ class Network(object):
                 epochs - epoch - 1
             ))
 
-            self.trainer(train_x, train_y)
+            for i in range(int(1 / batch_ratio)):
+                size = train_x.shape[0]
+                b_x = train_x[int(size * (i * batch_ratio)):
+                              int(size * ((i + 1) * batch_ratio))]
+                b_y = train_y[int(size * (i * batch_ratio)):
+                              int(size * ((i + 1) * batch_ratio))]
+
+                self.trainer(b_x, b_y)
+
+                sys.stdout.flush()
+                sys.stdout.write('\r\tDone %.1f %% of the epoch' %
+                                 (100 * (i + 1) * batch_ratio))
+
             train_error, train_accuracy = self.validator(train_x, train_y)
             validation_error, validation_accuracy = self.validator(val_x,
                                                                    val_y)
@@ -243,7 +259,7 @@ class Network(object):
             self.record['validation_error'].append(validation_error)
             self.record['validation_accuracy'].append(validation_accuracy)
             epoch_time_spent = time.time() - epoch_time
-            print ("    error: %s and accuracy: %s in %.2fs" % (
+            print ("\n    error: %s and accuracy: %s in %.2fs" % (
                 train_error,
                 train_accuracy,
                 epoch_time_spent)
