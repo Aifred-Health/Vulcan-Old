@@ -78,11 +78,6 @@ else:
     download_file("http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz")
     t10k_labels = load_label('data/t10k-labels-idx1-ubyte.gz')
 
-print train_images.shape
-print train_labels.shape
-print t10k_images.shape
-print t10k_labels.shape
-
 train_labels = get_one_hot(train_labels)
 
 input_var = T.fmatrix('input')
@@ -101,11 +96,12 @@ dense_net = Network(
 # Use to load model from disk
 # dense_net.load_model(load_path='models/3_dense.npz')
 dense_net.train(
-    epochs=5,
+    epochs=10,
     train_x=train_images[:50000],
     train_y=train_labels[:50000],
     val_x=train_images[50000:60000],
     val_y=train_labels[50000:60000],
+    batch_ratio=0.5,
     plot=True
 )
 dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
