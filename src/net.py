@@ -218,6 +218,11 @@ class Network(object):
         """
         print ('\nTraining %s in progress...\n' % self.name)
 
+        if batch_ratio > 1:
+            batch_ratio = 1
+
+        batch_ratio = float(batch_ratio)
+
         self.record = dict(
             epoch=[],
             train_error=[],
@@ -228,6 +233,11 @@ class Network(object):
         if plot:
             plt.ion()
             plt.figure(1)
+
+        if train_x.shape[0] * batch_ratio < 1.0:
+            batch_ratio = 1.0 / train_x.shape[0]
+            print ('Warning: Batch ratio too small. Changing to %.5f' %
+                   batch_ratio)
 
         for epoch in range(epochs):
             epoch_time = time.time()

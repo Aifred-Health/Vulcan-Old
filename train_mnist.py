@@ -101,7 +101,7 @@ dense_net.train(
     train_y=train_labels[:50000],
     val_x=train_images[50000:60000],
     val_y=train_labels[50000:60000],
-    batch_ratio=0.5,
+    batch_ratio=0.000001,
     plot=True
 )
 dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
