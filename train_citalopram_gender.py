@@ -79,7 +79,7 @@ def main():
         train_y=train_y,
         val_x=val_x,
         val_y=val_y,
-        batch_ratio=0.001,
+        batch_ratio=0.25,
         plot=True
     )
     dense_net.conduct_test(test_x=val_x, test_y=val_y)

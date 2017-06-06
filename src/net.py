@@ -123,6 +123,17 @@ class Network(object):
 
         return network
 
+    def cross_entropy_loss(self, prediciton, y):
+        """Generate a cross entropy loss function."""
+        print ("Using categorical cross entropy loss")
+        return lasagne.objectives.categorical_crossentropy(prediciton,
+                                                           y).mean()
+
+    def mse_loss(self, prediciton, y):
+        """Generate mean squared error loss function."""
+        print ("Using Mean Squared error loss")
+        return lasagne.objectives.squared_error(prediciton, y).mean()
+
     def create_trainer(self):
         """
         Generate a theano function to train the network.
@@ -139,13 +150,17 @@ class Network(object):
         # get network output
         out = lasagne.layers.get_output(self.network)
         # get all trainable parameters from network
-        params = lasagne.layers.get_all_params(self.network, trainable=True)
+        self.params = lasagne.layers.get_all_params(self.network,
+                                                    trainable=True)
         # calculate a loss function which has to be a scalar
-        cost = T.nnet.categorical_crossentropy(out, self.y).mean()
+        if self.num_classes is None or self.num_classes == 0:
+            self.cost = self.mse_loss(out, self.y)
+        else:
+            self.cost = self.cross_entropy_loss(out, self.y)
         # calculate updates using ADAM optimization gradient descent
         updates = lasagne.updates.adam(
-            loss_or_grads=cost,
-            params=params,
+            loss_or_grads=self.cost,
+            params=self.params,
             learning_rate=0.001,
             beta1=0.9,
             beta2=0.999,
@@ -173,10 +188,11 @@ class Network(object):
             deterministic=True
         )
         # check how much error in prediction
-        val_loss = lasagne.objectives.categorical_crossentropy(
-            val_prediction,
-            self.y
-        ).mean()
+        if self.num_classes is None or self.num_classes == 0:
+            val_loss = self.mse_loss(val_prediction, self.y)
+        else:
+            val_loss = self.cross_entropy_loss(val_prediction, self.y)
+
         # check the accuracy of the prediction
         val_acc = T.mean(T.eq(T.argmax(val_prediction, axis=1),
                               T.argmax(self.y, axis=1)),

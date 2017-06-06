@@ -88,7 +88,7 @@ dense_net = Network(
     dimensions=(None, int(train_images.shape[1])),
     input_var=input_var,
     y=y,
-    units=[4096, 2048, 1024],
+    units=[4096, 1024, 784],
     dropouts=[0.2, 0.2, 0.2],
     input_network=None,
     num_classes=10
@@ -101,7 +101,7 @@ dense_net.train(
     train_y=train_labels[:50000],
     val_x=train_images[50000:60000],
     val_y=train_labels[50000:60000],
-    batch_ratio=0.000001,
+    batch_ratio=1.0,
     plot=True
 )
-dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
+#dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
