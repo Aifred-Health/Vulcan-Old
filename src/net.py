@@ -5,6 +5,8 @@ import time
 
 import os
 
+import sys
+
 import numpy as np
 
 import lasagne
@@ -16,6 +18,7 @@ import theano
 import theano.tensor as T
 
 from utils import get_class
+from utils import display_record
 
 from scipy import integrate
 
@@ -155,6 +158,17 @@ class Network(object):
         self.layers.append(network)
         return network
 
+    def cross_entropy_loss(self, prediciton, y):
+        """Generate a cross entropy loss function."""
+        print ("Using categorical cross entropy loss")
+        return lasagne.objectives.categorical_crossentropy(prediciton,
+                                                           y).mean()
+
+    def mse_loss(self, prediciton, y):
+        """Generate mean squared error loss function."""
+        print ("Using Mean Squared error loss")
+        return lasagne.objectives.squared_error(prediciton, y).mean()
+
     def create_trainer(self):
         """
         Generate a theano function to train the network.
@@ -171,7 +185,7 @@ class Network(object):
         # get network output
         out = lasagne.layers.get_output(self.network)
         # get all trainable parameters from network
-
+        
         self.params = lasagne.layers.get_all_params(
             self.network,
             trainable=True,
@@ -180,6 +194,11 @@ class Network(object):
         # calculate a loss function which has to be a scalar
         if self.cost is None:
             self.cost = T.nnet.categorical_crossentropy(out, self.y).mean()
+            if self.num_classes is None or self.num_classes == 0:
+                self.cost = self.mse_loss(out, self.y)
+            else:
+                self.cost = self.cross_entropy_loss(out, self.y)
+                
         # calculate updates using ADAM optimization gradient descent
         updates = lasagne.updates.adam(
             loss_or_grads=self.cost,
@@ -212,10 +231,11 @@ class Network(object):
             deterministic=True
         )
         # check how much error in prediction
-        val_loss = lasagne.objectives.categorical_crossentropy(
-            val_prediction,
-            self.y
-        ).mean()
+        if self.num_classes is None or self.num_classes == 0:
+            val_loss = self.mse_loss(val_prediction, self.y)
+        else:
+            val_loss = self.cross_entropy_loss(val_prediction, self.y)
+
         # check the accuracy of the prediction
         val_acc = T.mean(T.eq(T.argmax(val_prediction, axis=1),
                               T.argmax(self.y, axis=1)),
@@ -240,7 +260,8 @@ class Network(object):
         else:
             return self.output(input_data)
 
-    def train(self, epochs, train_x, train_y, val_x, val_y, plot=True):
+    def train(self, epochs, train_x, train_y, val_x, val_y,
+              batch_ratio=0.1, plot=True):
         """
         Train the network.
 
@@ -250,10 +271,16 @@ class Network(object):
             train_y: the training truth
             val_x: the validation data (should not be also in train_x)
             val_y: the validation truth (should not be also in train_y)
+            batch_ratio: the percent (0-1) of how much data a batch should have
             plot: boolean if training curves should be plotted while training
 
         """
         print ('\nTraining %s in progress...\n' % self.name)
+
+        if batch_ratio > 1:
+            batch_ratio = 1
+
+        batch_ratio = float(batch_ratio)
 
         self.record = dict(
             epoch=[],
@@ -266,6 +293,11 @@ class Network(object):
             plt.ion()
             plt.figure(1)
 
+        if train_x.shape[0] * batch_ratio < 1.0:
+            batch_ratio = 1.0 / train_x.shape[0]
+            print ('Warning: Batch ratio too small. Changing to %.5f' %
+                   batch_ratio)
+
         for epoch in range(epochs):
             epoch_time = time.time()
             print ("--> Epoch: %d | Epochs left %d" % (
@@ -273,7 +305,19 @@ class Network(object):
                 epochs - epoch - 1
             ))
 
-            self.trainer(train_x, train_y)
+            for i in range(int(1 / batch_ratio)):
+                size = train_x.shape[0]
+                b_x = train_x[int(size * (i * batch_ratio)):
+                              int(size * ((i + 1) * batch_ratio))]
+                b_y = train_y[int(size * (i * batch_ratio)):
+                              int(size * ((i + 1) * batch_ratio))]
+
+                self.trainer(b_x, b_y)
+
+                sys.stdout.flush()
+                sys.stdout.write('\r\tDone %.1f %% of the epoch' %
+                                 (100 * (i + 1) * batch_ratio))
+
             train_error, train_accuracy = self.validator(train_x, train_y)
             validation_error, validation_accuracy = self.validator(val_x,
                                                                    val_y)
@@ -284,7 +328,7 @@ class Network(object):
             self.record['validation_error'].append(validation_error)
             self.record['validation_accuracy'].append(validation_accuracy)
             epoch_time_spent = time.time() - epoch_time
-            print ("    error: %s and accuracy: %s in %.2fs" % (
+            print ("\n    error: %s and accuracy: %s in %.2fs" % (
                 train_error,
                 train_accuracy,
                 epoch_time_spent)
@@ -292,41 +336,11 @@ class Network(object):
             eta = epoch_time_spent * (epochs - epoch - 1)
             minute, second = divmod(eta, 60)
             hour, minute = divmod(minute, 60)
-            print ("    ETA: %d:%02d:%02d (h:m:s)\n" % (hour, minute, second))
+            print ("    Estimated time left: %d:%02d:%02d (h:m:s)\n"
+                   % (hour, minute, second))
 
             if plot:
-                plt.plot(
-                    self.record['epoch'],
-                    self.record['train_error'],
-                    '-mo',
-                    label='Train Error' if epoch == 0 else ""
-                )
-                plt.plot(
-                    self.record['epoch'],
-                    self.record['train_accuracy'],
-                    '-go',
-                    label='Train Accuracy' if epoch == 0 else ""
-                )
-                plt.plot(
-                    self.record['epoch'],
-                    self.record['validation_error'],
-                    '-ro',
-                    label='Validation Error' if epoch == 0 else ""
-                )
-                plt.plot(
-                    self.record['epoch'],
-                    self.record['validation_accuracy'],
-                    '-bo',
-                    label='Validation Accuracy' if epoch == 0 else ""
-                )
-                plt.xlabel("Epoch")
-                plt.ylabel("Cross entropy error")
-                # plt.ylim(0,1)
-                plt.title('Training curve for model: %s' % self.name)
-                plt.legend(loc='upper right')
-
-                plt.show()
-                plt.pause(0.0001)
+                display_record(record=self.record)
 
     def conduct_test(self, test_x, test_y):
         """

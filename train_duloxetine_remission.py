@@ -92,6 +92,7 @@ def main():
         train_y=train_y,
         val_x=val_x,
         val_y=val_y,
+        batch_ratio=0.1,
         plot=True
     )
 
