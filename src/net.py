@@ -1,3 +1,4 @@
+#!/usr/bin/python2
 """Contains the class for creating networks."""
 
 import time
@@ -9,6 +10,7 @@ import sys
 import numpy as np
 
 import lasagne
+from lasagne.nonlinearities import sigmoid, softmax, rectify
 
 import matplotlib.pyplot as plt
 
@@ -39,6 +41,8 @@ class Network(object):
             num_classes: None or int. how many classes to predict
         """
         self.name = name
+        self.layers = []
+        self.cost = None
         self.dimensions = dimensions
         self.input_var = input_var
         self.y = y
@@ -51,13 +55,15 @@ class Network(object):
         if num_classes is not None and num_classes != 0:
             self.network = self.create_classification_layer(
                 self.network,
-                num_classes=num_classes
+                num_classes=num_classes,
+                nonlinearity=sigmoid if num_classes == 1 else softmax
             )
+        if self.y is not None:
+            self.trainer = self.create_trainer()
+            self.validator = self.create_validator()
 
-        self.trainer = self.create_trainer()
-        self.validator = self.create_validator()
         self.output = theano.function(
-            [self.input_var],
+            [i for i in [self.input_var] if i],
             lasagne.layers.get_output(self.network))
         self.record = None
 
@@ -81,29 +87,47 @@ class Network(object):
         if self.input_network is None:
             print ('\tInput Layer:')
             network = lasagne.layers.InputLayer(shape=self.dimensions,
-                                                input_var=self.input_var)
+                                                input_var=self.input_var,
+                                                name="%s_input" % self.name)
             print '\t\t', lasagne.layers.get_output_shape(network)
+            self.layers.append(network)
         else:
             network = self.input_network.network
             print ('Appending %s to %s.' % (self.name,
                                             self.input_network.name))
 
         print ('\tHidden Layer:')
-        for (num_units, prob_dropout) in zip(units, dropouts):
+        for i, (num_units, prob_dropout) in enumerate(zip(units, dropouts)):
             network = lasagne.layers.DenseLayer(
                 incoming=network,
                 num_units=num_units,
-                nonlinearity=lasagne.nonlinearities.rectify
+                nonlinearity=rectify,
+                name="%s_dense_%i" % (self.name, i)
             )
+            network.add_param(
+                network.W,
+                network.W.get_value().shape,
+                **{self.name: True}
+            )
+            network.add_param(
+                network.b,
+                network.b.get_value().shape,
+                **{self.name: True}
+            )
+            self.layers.append(network)
+
             network = lasagne.layers.DropoutLayer(
-                network,
-                p=prob_dropout
+                incoming=network,
+                p=prob_dropout,
+                name="%s_dropout_%i" % (self.name, i)
             )
+            self.layers.append(network)
             print '\t\t', lasagne.layers.get_output_shape(network)
 
         return network
 
-    def create_classification_layer(self, network, num_classes):
+    def create_classification_layer(self, network, num_classes,
+                                    nonlinearity):
         """
         Create a classificatino layer. Normally used as the last layer.
 
@@ -117,10 +141,21 @@ class Network(object):
         network = lasagne.layers.DenseLayer(
             incoming=network,
             num_units=num_classes,
-            nonlinearity=lasagne.nonlinearities.softmax
+            nonlinearity=nonlinearity,
+            name="%s_softmax" % self.name
+        )
+        network.add_param(
+            network.W,
+            network.W.get_value().shape,
+            **{self.name: True}
+        )
+        network.add_param(
+            network.b,
+            network.b.get_value().shape,
+            **{self.name: True}
         )
         print '\t\t', lasagne.layers.get_output_shape(network)
-
+        self.layers.append(network)
         return network
 
     def cross_entropy_loss(self, prediciton, y):
@@ -150,13 +185,20 @@ class Network(object):
         # get network output
         out = lasagne.layers.get_output(self.network)
         # get all trainable parameters from network
-        self.params = lasagne.layers.get_all_params(self.network,
-                                                    trainable=True)
+        
+        self.params = lasagne.layers.get_all_params(
+            self.network,
+            trainable=True,
+            **{self.name: True}
+        )
         # calculate a loss function which has to be a scalar
-        if self.num_classes is None or self.num_classes == 0:
-            self.cost = self.mse_loss(out, self.y)
-        else:
-            self.cost = self.cross_entropy_loss(out, self.y)
+        if self.cost is None:
+            self.cost = T.nnet.categorical_crossentropy(out, self.y).mean()
+            if self.num_classes is None or self.num_classes == 0:
+                self.cost = self.mse_loss(out, self.y)
+            else:
+                self.cost = self.cross_entropy_loss(out, self.y)
+                
         # calculate updates using ADAM optimization gradient descent
         updates = lasagne.updates.adam(
             loss_or_grads=self.cost,
@@ -167,7 +209,8 @@ class Network(object):
             epsilon=1e-08
         )
         # omitted (, allow_input_downcast=True)
-        return theano.function([self.input_var, self.y], updates=updates)
+        return theano.function([i for i in [self.input_var, self.y] if i],
+                               updates=updates)
 
     def create_validator(self):
         """

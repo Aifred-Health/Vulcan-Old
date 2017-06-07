@@ -60,6 +60,8 @@ def main():
     input_var = T.fmatrix('input')
     y = T.fmatrix('truth')
 
+
+
     dense_net = Network(
         name='3_dense',
         dimensions=(None, int(train_x.shape[1])),
@@ -70,6 +72,8 @@ def main():
         input_network=None,
         num_classes=2
     )
+
+    
     # Use to load model from disk
     # dense_net.load_model(load_path='models/3_dense.npz')
 
