@@ -8,6 +8,7 @@ import os
 import numpy as np
 
 import lasagne
+from lasagne.nonlinearities import sigmoid, softmax, rectify
 
 import matplotlib.pyplot as plt
 
@@ -52,7 +53,7 @@ class Network(object):
             self.network = self.create_classification_layer(
                 self.network,
                 num_classes=num_classes,
-                nonlinearity=lasagne.nonlinearities.sigmoid
+                nonlinearity=sigmoid if num_classes == 1 else softmax
             )
         if self.y is not None:
             self.trainer = self.create_trainer()
@@ -97,7 +98,7 @@ class Network(object):
             network = lasagne.layers.DenseLayer(
                 incoming=network,
                 num_units=num_units,
-                nonlinearity=lasagne.nonlinearities.rectify,
+                nonlinearity=rectify,
                 name="%s_dense_%i" % (self.name, i)
             )
             network.add_param(
@@ -123,7 +124,7 @@ class Network(object):
         return network
 
     def create_classification_layer(self, network, num_classes,
-                                    nonlinearity=lasagne.nonlinearities.softmax):
+                                    nonlinearity):
         """
         Create a classificatino layer. Normally used as the last layer.
 
@@ -189,7 +190,8 @@ class Network(object):
             epsilon=1e-08
         )
         # omitted (, allow_input_downcast=True)
-        return theano.function([i for i in [self.input_var, self.y] if i], updates=updates)
+        return theano.function([i for i in [self.input_var, self.y] if i],
+                               updates=updates)
 
     def create_validator(self):
         """
