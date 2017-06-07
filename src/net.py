@@ -38,6 +38,7 @@ class Network(object):
         """
         self.name = name
         self.layers = []
+        self.cost = None
         self.dimensions = dimensions
         self.input_var = input_var
         self.y = y
@@ -50,13 +51,15 @@ class Network(object):
         if num_classes is not None and num_classes != 0:
             self.network = self.create_classification_layer(
                 self.network,
-                num_classes=num_classes
+                num_classes=num_classes,
+                nonlinearity=lasagne.nonlinearities.sigmoid
             )
+        if self.y is not None:
+            self.trainer = self.create_trainer()
+            self.validator = self.create_validator()
 
-        self.trainer = self.create_trainer()
-        self.validator = self.create_validator()
         self.output = theano.function(
-            [self.input_var],
+            [i for i in [self.input_var] if i],
             lasagne.layers.get_output(self.network))
         self.record = None
 
@@ -100,12 +103,12 @@ class Network(object):
             network.add_param(
                 network.W,
                 network.W.get_value().shape,
-                exec (u'%s = True' % self.name)
+                **{self.name: True}
             )
             network.add_param(
                 network.b,
                 network.b.get_value().shape,
-                exec(self.tag)
+                **{self.name: True}
             )
             self.layers.append(network)
 
@@ -119,7 +122,8 @@ class Network(object):
 
         return network
 
-    def create_classification_layer(self, network, num_classes):
+    def create_classification_layer(self, network, num_classes,
+                                    nonlinearity=lasagne.nonlinearities.softmax):
         """
         Create a classificatino layer. Normally used as the last layer.
 
@@ -133,18 +137,18 @@ class Network(object):
         network = lasagne.layers.DenseLayer(
             incoming=network,
             num_units=num_classes,
-            nonlinearity=lasagne.nonlinearities.softmax,
+            nonlinearity=nonlinearity,
             name="%s_softmax" % self.name
         )
         network.add_param(
             network.W,
             network.W.get_value().shape,
-            exec(self.tag)
+            **{self.name: True}
         )
         network.add_param(
             network.b,
             network.b.get_value().shape,
-            exec(self.tag)
+            **{self.name: True}
         )
         print '\t\t', lasagne.layers.get_output_shape(network)
         self.layers.append(network)
@@ -166,26 +170,26 @@ class Network(object):
         # get network output
         out = lasagne.layers.get_output(self.network)
         # get all trainable parameters from network
-        params = lasagne.layers.get_all_params(
+
+        self.params = lasagne.layers.get_all_params(
             self.network,
             trainable=True,
-            exec(self.tag)
+            **{self.name: True}
         )
-        #if self.name=='discriminator':
-        import pudb; pu.db 
         # calculate a loss function which has to be a scalar
-        cost = T.nnet.categorical_crossentropy(out, self.y).mean()
+        if self.cost is None:
+            self.cost = T.nnet.categorical_crossentropy(out, self.y).mean()
         # calculate updates using ADAM optimization gradient descent
         updates = lasagne.updates.adam(
-            loss_or_grads=cost,
-            params=params,
+            loss_or_grads=self.cost,
+            params=self.params,
             learning_rate=0.001,
             beta1=0.9,
             beta2=0.999,
             epsilon=1e-08
         )
         # omitted (, allow_input_downcast=True)
-        return theano.function([self.input_var, self.y], updates=updates)
+        return theano.function([i for i in [self.input_var, self.y] if i], updates=updates)
 
     def create_validator(self):
         """

@@ -4,6 +4,8 @@ import numpy as np
 
 import pandas as pd
 
+import lasagne
+
 import theano.tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
 
@@ -60,12 +62,15 @@ def main():
     input_var = T.fmatrix('input')
     y = T.fmatrix('truth')
 
+    srng = RandomStreams(seed=234)
+    z = srng.uniform((10, 32))
+
     generator = Network(
         name='generator',
-        dimensions=(None, int(train_x.shape[1])),
-        input_var=input_var,
-        y=y,
-        units=[4096, 2048, 1024],
+        dimensions=(None, 32),
+        input_var=z,
+        y=None,
+        units=[4096, 2048, 784],
         dropouts=[0.5, 0.5, 0.5],
         input_network=None,
         num_classes=None
@@ -73,18 +78,29 @@ def main():
 
     discriminator = Network(
         name='discriminator',
-        dimensions=(None, int(train_x.shape[1])),
-        input_var=input_var,
-        y=y,
+        dimensions=(None, 784),
+        input_var=None,
+        y=None,
         units=[4096, 2048, 1024],
         dropouts=[0.5, 0.5, 0.5],
         input_network=generator,
-        num_classes=2
+        num_classes=1
     )
 
-    srng = RandomStreams(seed=234)
+    g_x = lasagne.layers.get_output(generator.layers)[-1]
+    score_g_x = lasagne.layers.get_output(discriminator.layers, g_x)[-1]
+    score_r_x = lasagne.layers.get_output(discriminator.layers, input_var)[-1]
 
-    #import pudb; pu.db
+    discriminator_loss = (score_g_x - score_r_x).mean()
+    generator_loss = (- score_g_x).mean()
+
+    discriminator.cost = discriminator_loss
+    generator.cost = generator_loss
+    discriminator.input_var = input_var
+    discriminator.trainer = discriminator.create_trainer()
+    generator.trainer = generator.create_trainer()
+
+    import pudb; pu.db
     # Use to load model from disk
     # dense_net.load_model(load_path='models/3_dense.npz')
 
