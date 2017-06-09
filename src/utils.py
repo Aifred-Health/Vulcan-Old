@@ -8,6 +8,25 @@ import pickle
 import matplotlib.pyplot as plt
 
 
+def get_confusion_matrix(prediction, truth):
+    """
+    Calculate the confusion matrix for classification network predictions.
+
+    Args:
+        predicted: the class matrix predicted by the network.
+                   Does not take one hot vectors.
+        actual: the class matrix of the ground truth
+                Does not take one hot vectors.
+
+    Returns: the confusion matrix
+    """
+    import pandas as pd
+
+    prediction_pd = pd.Series(prediction)
+    truth_pd = pd.Series(truth)
+    return pd.crosstab(prediction_pd, truth_pd)
+
+
 def get_one_hot(in_matrix):
     """
     Reformat truth matrix to same size as the output of the dense network.

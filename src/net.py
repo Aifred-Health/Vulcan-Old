@@ -1,4 +1,3 @@
-#!/usr/bin/python2
 """Contains the class for creating networks."""
 
 import time
@@ -19,6 +18,7 @@ import theano.tensor as T
 
 from utils import get_class
 from utils import display_record
+from utils import get_confusion_matrix
 
 from scipy import integrate
 
@@ -185,7 +185,7 @@ class Network(object):
         # get network output
         out = lasagne.layers.get_output(self.network)
         # get all trainable parameters from network
-        
+
         self.params = lasagne.layers.get_all_params(
             self.network,
             trainable=True,
@@ -193,12 +193,11 @@ class Network(object):
         )
         # calculate a loss function which has to be a scalar
         if self.cost is None:
-            self.cost = T.nnet.categorical_crossentropy(out, self.y).mean()
             if self.num_classes is None or self.num_classes == 0:
                 self.cost = self.mse_loss(out, self.y)
             else:
                 self.cost = self.cross_entropy_loss(out, self.y)
-                
+
         # calculate updates using ADAM optimization gradient descent
         updates = lasagne.updates.adam(
             loss_or_grads=self.cost,
@@ -279,7 +278,6 @@ class Network(object):
 
         if batch_ratio > 1:
             batch_ratio = 1
-
         batch_ratio = float(batch_ratio)
 
         self.record = dict(
@@ -364,6 +362,9 @@ class Network(object):
         while (threshold < 1.0):
             prediction = np.where(raw_prediction > threshold, 1.0, 0.0)
             prediction = get_class(prediction)
+
+            confusion_matrix = get_confusion_matrix(prediction=prediction,
+                                                    truth=test_y)
 
             tp = float(np.sum(np.logical_and(prediction == 1.0,
                                              test_y == 1.0)))
