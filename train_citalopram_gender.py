@@ -76,7 +76,7 @@ def main():
     
     # Use to load model from disk
     # dense_net.load_model(load_path='models/3_dense.npz')
-
+    dense_net.conduct_test(test_x=val_x, test_y=val_y)
     dense_net.train(
         epochs=5,
         train_x=train_x,

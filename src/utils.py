@@ -22,6 +22,11 @@ def get_confusion_matrix(prediction, truth):
     """
     import pandas as pd
 
+    if len(prediction.shape) == 2:
+        prediction = prediction[:, 0]
+    if len(truth.shape) == 2:
+        truth = truth[:, 0]
+
     prediction_pd = pd.Series(prediction)
     truth_pd = pd.Series(truth)
     return pd.crosstab(prediction_pd, truth_pd)
