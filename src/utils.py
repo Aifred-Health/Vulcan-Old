@@ -20,16 +20,14 @@ def get_confusion_matrix(prediction, truth):
 
     Returns: the confusion matrix
     """
-    import pandas as pd
+    from sklearn.metrics import confusion_matrix
 
     if len(prediction.shape) == 2:
         prediction = prediction[:, 0]
     if len(truth.shape) == 2:
         truth = truth[:, 0]
 
-    prediction_pd = pd.Series(prediction)
-    truth_pd = pd.Series(truth)
-    return pd.crosstab(prediction_pd, truth_pd)
+    return confusion_matrix(prediction, truth)
 
 
 def get_one_hot(in_matrix):
