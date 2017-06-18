@@ -92,9 +92,8 @@ class Network(object):
             print '\t\t', lasagne.layers.get_output_shape(network)
             self.layers.append(network)
         else:
-            network = self.input_network.network
-            print ('Appending %s to %s.' % (self.name,
-                                            self.input_network.name))
+            network = self.input_network
+            print ('Appending networks together')
 
         print ('\tHidden Layer:')
         for i, (num_units, prob_dropout) in enumerate(zip(units, dropouts)):
@@ -366,38 +365,68 @@ class Network(object):
             confusion_matrix = get_confusion_matrix(prediction=prediction,
                                                     truth=test_y)
 
-            tp = float(np.sum(np.logical_and(prediction == 1.0,
-                                             test_y == 1.0)))
-            tn = float(np.sum(np.logical_and(prediction == 0.0,
-                                             test_y == 0.0)))
-            fp = float(np.sum(np.logical_and(prediction == 1.0,
-                                             test_y == 0.0)))
-            fn = float(np.sum(np.logical_and(prediction == 0.0,
-                                             test_y == 1.0)))
+            tp = np.diagonal(confusion_matrix).astype('float32')
+            tn = (np.array([np.sum(confusion_matrix)] *
+                           confusion_matrix.shape[0]) -
+                  confusion_matrix.sum(axis=0) -
+                  confusion_matrix.sum(axis=1) +
+                  tp).astype('float32')
+            # sum each column and remove diagonal
+            fp = (confusion_matrix.sum(axis=0) - tp).astype('float32')
+            # sum each row and remove diagonal
+            fn = (confusion_matrix.sum(axis=1) - tp).astype('float32')
 
-            sensitivity = tp / (tp + fn)
-            specificity = tn / (tn + fp)
+            # tp = float(np.sum(np.logical_and(prediction == 1.0,
+            #                                  test_y == 1.0)))
+            # tn = float(np.sum(np.logical_and(prediction == 0.0,
+            #                                  test_y == 0.0)))
+            # fp = float(np.sum(np.logical_and(prediction == 1.0,
+            #                                  test_y == 0.0)))
+            # fn = float(np.sum(np.logical_and(prediction == 0.0,
+            #                                  test_y == 1.0)))
 
-            x = np.append(x, 1.0 - specificity)
-            y = np.append(y, sensitivity)
+            sensitivity = np.nan_to_num(tp / (tp + fn))
+            specificity = np.nan_to_num(tn / (tn + fp))
+
+            x = np.append(x, 1.0 - np.average(specificity))
+            y = np.append(y, np.average(sensitivity))
 
             if abs(threshold - 0.5) < 1e-08:
-                accuracy = (tp + tn) / (tp + fp + tn + fn)
-                sens = tp / (tp + fn) if tp > 0 else 0.0
-                spec = tn / (tn + fp) if tn > 0 else 0.0
+                # accuracy = (tp + tn) / (tp + fp + tn + fn)
+                accuracy = np.sum(tp) / np.sum(confusion_matrix)
+                sens = np.nan_to_num(tp / (tp + fn))  # recall
+                spec = np.nan_to_num(tn / (tn + fp))
                 dice = 2 * tp / (2 * tp + fp + fn)
-                ppv = tp / (tp + fp) if tp > 0 else 0.0
-                npv = tn / (tn + fn) if tn > 0 else 0.0
-
+                ppv = np.nan_to_num(tp / (tp + fp))  # precision
+                npv = np.nan_to_num(tn / (tn + fn))
+                f1 = np.nan_to_num(2 * (ppv * sens) / (ppv + sens))
+                #import pudb; pu.db
                 print ('%s test\'s results' % self.name)
 
-                print ('\tTP: %i, FP: %i, TN: %i, FN: %i' % (tp, fp, tn, fn))
-                print ('\tAccuracy: %.4f' % accuracy)
-                print ('\tSensitivity: %.4f' % sens)
-                print ('\tSpecificity: %.4f' % spec)
-                print ('\tDICE: %.4f' % dice)
-                print ('\tPositive Predictive Value: %.4f' % ppv)
-                print ('\tNegative Predictive Value: %.4f' % npv)
+                print ('\tTP: %s\n\tFP: %s\n\tTN: %s\n\tFN: %s' %
+                       (tp, fp, tn, fn))
+
+                print ('\tAccuracy: %s' % accuracy)
+
+                print ('\tSensitivity: %s' % sens)
+                print ('\t\tAvg. Sensitivity: %.4f' % np.average(sens))
+
+                print ('\tSpecificity: %s' % spec)
+                print ('\t\tAvg. Specificity: %.4f' % np.average(spec))
+
+                print ('\tDICE: %s' % dice)
+                print ('\t\tAvg. DICE: %.4f' % np.average(dice))
+
+                print ('\tPositive Predictive Value: %s' % ppv)
+                print ('\t\tAvg. Positive Predictive Value: %.4f' %
+                       np.average(ppv))
+
+                print ('\tNegative Predictive Value: %s' % npv)
+                print ('\t\tAvg. Negative Predictive Value: %.4f' %
+                       np.average(npv))
+
+                print ('\tf1-score: %s' % f1)
+                print ('\t\tAvg. f1-score: %.4f' % np.average(f1))
 
             threshold += 0.01
 

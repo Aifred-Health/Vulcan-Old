@@ -27,7 +27,8 @@ def get_confusion_matrix(prediction, truth):
     if len(truth.shape) == 2:
         truth = truth[:, 0]
 
-    return confusion_matrix(prediction, truth)
+    return confusion_matrix(y_true=truth,
+                            y_pred=prediction)
 
 
 def get_one_hot(in_matrix):
