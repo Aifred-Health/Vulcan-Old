@@ -94,10 +94,10 @@ dense_net = Network(
     num_classes=10
 )
 # Use to load model from disk
-dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
+#dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
 # dense_net.load_model(load_path='models/3_dense.npz')
 dense_net.train(
-    epochs=3,
+    epochs=6,
     train_x=train_images[:50000],
     train_y=train_labels[:50000],
     val_x=train_images[50000:60000],

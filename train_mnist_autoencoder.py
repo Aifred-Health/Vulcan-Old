@@ -107,7 +107,7 @@ autoencoder.load_model(load_path='models/autoencoder_mnist.npz')
 #     plot=True
 # )
 # autoencoder.save_model(save_path='models')
-import pudb; pu.db
+
 dense_net = Network(
     name='3_dense',
     dimensions=(None, int(train_images.shape[1])),
@@ -120,7 +120,7 @@ dense_net = Network(
 )
 
 dense_net.train(
-    epochs=3,
+    epochs=6,
     train_x=train_images[:50000],
     train_y=train_labels[:50000],
     val_x=train_images[50000:60000],

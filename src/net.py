@@ -22,8 +22,6 @@ from utils import get_confusion_matrix
 from utils import selu
 from utils import round_list
 
-from pprint import pprint
-
 from scipy import integrate
 
 
@@ -419,27 +417,27 @@ class Network(object):
                 print ('\nAccuracy: %s' % accuracy)
 
                 print ('Sensitivity:'),
-                print(round_list(sens))
+                print(round_list(sens, decimals=3))
                 print ('\tAvg. Sensitivity: %.4f\n' % np.average(sens))
 
                 print ('Specificity:'),
-                print(round_list(spec))
+                print(round_list(spec, decimals=3))
                 print ('\tAvg. Specificity: %.4f\n' % np.average(spec))
 
                 print ('DICE:'),
-                print(round_list(dice))
+                print(round_list(dice, decimals=3))
                 print ('\tAvg. DICE: %.4f\n' % np.average(dice))
 
                 print ('PPV:'),
-                print(round_list(ppv))
+                print(round_list(ppv, decimals=3))
                 print ('\tAvg. PPV: %.4f\n' % np.average(ppv))
 
                 print ('NPV:'),
-                print(round_list(npv))
+                print(round_list(npv, decimals=3))
                 print ('\tAvg. NPV: %.4f\n' % np.average(npv))
 
                 print ('f1-score:'),
-                print(round_list(f1))
+                print(round_list(f1, decimals=3))
                 print ('\tAvg. f1-score: %.4f\n' % np.average(f1))
 
             threshold += 0.01
