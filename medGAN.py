@@ -83,7 +83,7 @@ def main():
         y=None,
         units=[4096, 2048, 1024],
         dropouts=[0.5, 0.5, 0.5],
-        input_network=generator,
+        input_network=generator.network,
         num_classes=1
     )
 

@@ -19,6 +19,10 @@ import theano.tensor as T
 from utils import get_class
 from utils import display_record
 from utils import get_confusion_matrix
+from utils import selu
+from utils import round_list
+
+from pprint import pprint
 
 from scipy import integrate
 
@@ -403,30 +407,40 @@ class Network(object):
                 #import pudb; pu.db
                 print ('%s test\'s results' % self.name)
 
-                print ('\tTP: %s\n\tFP: %s\n\tTN: %s\n\tFN: %s' %
-                       (tp, fp, tn, fn))
+                print ('TP:'),
+                print (tp)
+                print ('FP:'),
+                print (fp)
+                print ('TN:'),
+                print (tn)
+                print ('FN:'),
+                print (fn)
 
-                print ('\tAccuracy: %s' % accuracy)
+                print ('\nAccuracy: %s' % accuracy)
 
-                print ('\tSensitivity: %s' % sens)
-                print ('\t\tAvg. Sensitivity: %.4f' % np.average(sens))
+                print ('Sensitivity:'),
+                print(round_list(sens))
+                print ('\tAvg. Sensitivity: %.4f\n' % np.average(sens))
 
-                print ('\tSpecificity: %s' % spec)
-                print ('\t\tAvg. Specificity: %.4f' % np.average(spec))
+                print ('Specificity:'),
+                print(round_list(spec))
+                print ('\tAvg. Specificity: %.4f\n' % np.average(spec))
 
-                print ('\tDICE: %s' % dice)
-                print ('\t\tAvg. DICE: %.4f' % np.average(dice))
+                print ('DICE:'),
+                print(round_list(dice))
+                print ('\tAvg. DICE: %.4f\n' % np.average(dice))
 
-                print ('\tPositive Predictive Value: %s' % ppv)
-                print ('\t\tAvg. Positive Predictive Value: %.4f' %
-                       np.average(ppv))
+                print ('PPV:'),
+                print(round_list(ppv))
+                print ('\tAvg. PPV: %.4f\n' % np.average(ppv))
 
-                print ('\tNegative Predictive Value: %s' % npv)
-                print ('\t\tAvg. Negative Predictive Value: %.4f' %
-                       np.average(npv))
+                print ('NPV:'),
+                print(round_list(npv))
+                print ('\tAvg. NPV: %.4f\n' % np.average(npv))
 
-                print ('\tf1-score: %s' % f1)
-                print ('\t\tAvg. f1-score: %.4f' % np.average(f1))
+                print ('f1-score:'),
+                print(round_list(f1))
+                print ('\tAvg. f1-score: %.4f\n' % np.average(f1))
 
             threshold += 0.01
 

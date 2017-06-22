@@ -115,18 +115,18 @@ dense_net = Network(
     y=y,
     units=[4096, 1024, 784],
     dropouts=[0.2, 0.2, 0.2],
-    input_network=autoencoder.layers[3],
+    input_network=autoencoder.layers[4],
     num_classes=10
 )
 
-# dense_net.train(
-#     epochs=3,
-#     train_x=train_images[:50000],
-#     train_y=train_labels[:50000],
-#     val_x=train_images[50000:60000],
-#     val_y=train_labels[50000:60000],
-#     batch_ratio=0.5,
-#     plot=True
-# )
+dense_net.train(
+    epochs=3,
+    train_x=train_images[:50000],
+    train_y=train_labels[:50000],
+    val_x=train_images[50000:60000],
+    val_y=train_labels[50000:60000],
+    batch_ratio=0.5,
+    plot=True
+)
 
 dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])

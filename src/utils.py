@@ -7,6 +7,33 @@ import pickle
 
 import matplotlib.pyplot as plt
 
+import theano
+
+
+def selu(x):
+    """
+    Scaled exponential linear units as proposed in [1].
+
+    [1] - https://arxiv.org/pdf/1706.02515.pdf
+    """
+    alpha = 1.6732632423543772848170429916717
+    scale = 1.0507009873554804934193349852946
+    return scale * theano.tensor.switch(x >= 0.0, x,
+                                        alpha * (theano.tensor.expm1(x) - 1))
+
+
+def round_list(raw_list, decimals=4):
+    """
+    Return the same list with each item rounded off.
+
+    Args:
+        raw_list: float list
+        decimals: how many decimal points to round to
+
+    Returns: the rounded list
+    """
+    return [round(item, decimals) for item in raw_list]
+
 
 def get_confusion_matrix(prediction, truth):
     """
