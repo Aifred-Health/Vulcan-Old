@@ -20,6 +20,7 @@ from utils import get_class
 from utils import display_record
 from utils import get_confusion_matrix
 from utils import selu
+from utils import selu_dropout
 from utils import round_list
 
 from scipy import integrate
@@ -28,8 +29,8 @@ from scipy import integrate
 class Network(object):
     """Class to generate networks and train them."""
 
-    def __init__(self, name, dimensions, input_var, y,
-                 units, dropouts, input_network=None, num_classes=None):
+    def __init__(self, name, dimensions, input_var, y, units, dropouts,
+                 input_network=None, num_classes=None, activation='rectify'):
         """
         Initialize network specified.
 
@@ -51,7 +52,8 @@ class Network(object):
         self.input_network = input_network
         self.network = self.create_dense_network(
             units=units,
-            dropouts=dropouts
+            dropouts=dropouts,
+            nonlinearity=selu if activation == 'selu' else rectify
         )
         self.num_classes = num_classes
         if num_classes is not None and num_classes != 0:
@@ -69,7 +71,7 @@ class Network(object):
             lasagne.layers.get_output(self.network))
         self.record = None
 
-    def create_dense_network(self, units, dropouts):
+    def create_dense_network(self, units, dropouts, nonlinearity):
         """
         Generate a fully connected layer.
 
@@ -102,7 +104,7 @@ class Network(object):
             network = lasagne.layers.DenseLayer(
                 incoming=network,
                 num_units=num_units,
-                nonlinearity=rectify,
+                nonlinearity=nonlinearity,
                 name="%s_dense_%i" % (self.name, i)
             )
             network.add_param(
@@ -117,11 +119,15 @@ class Network(object):
             )
             self.layers.append(network)
 
-            network = lasagne.layers.DropoutLayer(
-                incoming=network,
-                p=prob_dropout,
-                name="%s_dropout_%i" % (self.name, i)
-            )
+            if nonlinearity.__name__ == 'selu':
+                network = selu_dropout(network)
+            else:
+                network = lasagne.layers.DropoutLayer(
+                    incoming=network,
+                    p=prob_dropout,
+                    name="%s_dropout_%i" % (self.name, i)
+                )
+
             self.layers.append(network)
             print '\t\t', lasagne.layers.get_output_shape(network)
 
@@ -402,7 +408,7 @@ class Network(object):
                 ppv = np.nan_to_num(tp / (tp + fp))  # precision
                 npv = np.nan_to_num(tn / (tn + fn))
                 f1 = np.nan_to_num(2 * (ppv * sens) / (ppv + sens))
-                #import pudb; pu.db
+
                 print ('%s test\'s results' % self.name)
 
                 print ('TP:'),

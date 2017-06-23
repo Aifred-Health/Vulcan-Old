@@ -91,7 +91,8 @@ dense_net = Network(
     units=[4096, 1024, 784],
     dropouts=[0.2, 0.2, 0.2],
     input_network=None,
-    num_classes=10
+    num_classes=10,
+    activation='rectify'
 )
 # Use to load model from disk
 #dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])

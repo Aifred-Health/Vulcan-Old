@@ -1,13 +1,17 @@
 """Contains auxilliary methods."""
 import os
 
+import math
+
 import numpy as np
 
 import pickle
 
 import matplotlib.pyplot as plt
 
-import theano
+from theano.tensor import switch, expm1
+from theano.tensor.raw_random import RandomStreamsBase
+import theano.tensor as T
 
 
 def selu(x):
@@ -17,9 +21,23 @@ def selu(x):
     [1] - https://arxiv.org/pdf/1706.02515.pdf
     """
     alpha = 1.6732632423543772848170429916717
-    scale = 1.0507009873554804934193349852946
-    return scale * theano.tensor.switch(x >= 0.0, x,
-                                        alpha * (theano.tensor.expm1(x) - 1))
+    lam = 1.0507009873554804934193349852946
+    return lam * switch(x >= 0.0, x, alpha * expm1(x))
+
+
+def selu_dropout(x, p=0.1, alpha=-1.7580993408473766):
+    """
+    SELU alpha dropout as proposed in [1].
+
+    [1] - https://arxiv.org/pdf/1706.02515.pdf
+    """
+    q = 1 - p
+    d_selection = RandomStreamsBase()
+    d = d_selection.random_integers(T.shape(x))
+    a = math.pow(q + alpha ** 2 * q * (1 - q), -0.5)
+    b = -a * (1 - q) * alpha
+
+    return a * (x * d + alpha * (1 - d)) + b
 
 
 def round_list(raw_list, decimals=4):
