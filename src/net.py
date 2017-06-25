@@ -19,9 +19,10 @@ import theano.tensor as T
 from utils import get_class
 from utils import display_record
 from utils import get_confusion_matrix
-from utils import selu
-from utils import selu_dropout
 from utils import round_list
+
+from selu import selu
+from selu import AlphaDropoutLayer
 
 from scipy import integrate
 
@@ -120,7 +121,7 @@ class Network(object):
             self.layers.append(network)
 
             if nonlinearity.__name__ == 'selu':
-                network = selu_dropout(network)
+                network = AlphaDropoutLayer(incoming=network)
             else:
                 network = lasagne.layers.DropoutLayer(
                     incoming=network,
