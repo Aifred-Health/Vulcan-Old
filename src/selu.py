@@ -40,29 +40,23 @@ class AlphaDropoutLayer(Layer):
 
     Notes
     -----
-    The dropout layer is a regularizer that randomly sets input values to
-    zero; see [1]_, [2]_ for why this might improve generalization.
-    The behaviour of the layer depends on the ``deterministic`` keyword
-    argument passed to :func:`lasagne.layers.get_output`. If ``True``, the
-    layer behaves deterministically, and passes on the input unchanged. If
+    The alpha dropout layer is a regularizer that randomly sets input values to
+    zero and also applies a normalization function to bring the mean to 0
+    and the variance to 1; see [1]_, [2]_ for why this might improve
+    generalization. The behaviour of the layer depends on the ``deterministic``
+    keyword argument passed to :func:`lasagne.layers.get_output`. If ``True``,
+    the layer behaves deterministically, and passes on the input unchanged. If
     ``False`` or not specified, dropout (and possibly scaling) is enabled.
     Usually, you would use ``deterministic=False`` at train time and
     ``deterministic=True`` at test time.
-    See also
-    --------
-    dropout_channels : Drops full channels of feature maps
-    spatial_dropout : Alias for :func:`dropout_channels`
-    dropout_locations : Drops full pixels or voxels of feature maps
     References
     ----------
     .. [1] Hinton, G., Srivastava, N., Krizhevsky, A., Sutskever, I.,
            Salakhutdinov, R. R. (2012):
            Improving neural networks by preventing co-adaptation of feature
            detectors. arXiv preprint arXiv:1207.0580.
-    .. [2] Srivastava Nitish, Hinton, G., Krizhevsky, A., Sutskever,
-           I., & Salakhutdinov, R. R. (2014):
-           Dropout: A Simple Way to Prevent Neural Networks from Overfitting.
-           Journal of Machine Learning Research, 5(Jun)(2), 1929-1958.
+    .. [2] Klambauer, G., Unterthiner, T., Mayr, A., Hochreiter, S. (2017):
+           Self-Normalizing Neural Networks. arXiv preprint: 1706.02515
     """
 
     def __init__(self, incoming, p=0.1, rescale=True, shared_axes=(),
