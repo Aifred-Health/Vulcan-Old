@@ -88,7 +88,7 @@ dense_net = Network(
     dimensions=(None, int(train_images.shape[1])),
     input_var=input_var,
     y=y,
-    units=[4096, 1024, 784],
+    units=[1024, 1024, 784],
     dropouts=[0.2, 0.2, 0.2],
     input_network=None,
     num_classes=10,
@@ -103,7 +103,7 @@ dense_net.train(
     train_y=train_labels[:50000],
     val_x=train_images[50000:60000],
     val_y=train_labels[50000:60000],
-    batch_ratio=0.5,
+    batch_ratio=0.01,
     plot=True
 )
 
