@@ -450,10 +450,12 @@ class Network(object):
             threshold += 0.01
 
         auc = integrate.trapz(y, x)  # NEEDS REPAIR
+        print ('AUC: %.4f' % auc)
 
         print ('\tGenerating ROC ...')
-        plt.figure(2)
-        plt.ion()
+        if "DISPLAY" in os.environ:
+            plt.figure(2)
+            plt.ion()
         plt.plot(x, y, label=("AUC: %.4f" % auc))
         plt.title("ROC Curve for %s" % self.name)
         plt.xlabel('1 - specificity')
@@ -461,7 +463,8 @@ class Network(object):
         plt.legend(loc='lower right')
         plt.ylim(0.0, 1.0)
         plt.xlim(0.0, 1.0)
-        plt.show()
+        if "DISPLAY" in os.environ:
+            plt.show()
 
         if not os.path.exists('figures'):
             print ('Creating figures folder')
