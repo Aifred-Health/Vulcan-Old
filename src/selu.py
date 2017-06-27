@@ -1,7 +1,7 @@
 """Conatains custom layers not implemented in Lasagne."""
 
 from theano.tensor import switch, expm1
-from theano.tensor.shared_randomstreams import RandomStreams
+from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 import theano.tensor as T
 
 from lasagne.layers.base import Layer
@@ -93,7 +93,7 @@ class AlphaDropoutLayer(Layer):
                 mask_shape = tuple(1 if a in shared_axes else s
                                    for a, s in enumerate(mask_shape))
 
-            mask = self._srng.random_integers(mask_shape, dtype=input.dtype)
+            mask = self._srng.uniform(mask_shape, dtype=input.dtype) < retain_prob
 
             if self.shared_axes:
                 bcast = tuple(bool(s == 1) for s in mask_shape)
