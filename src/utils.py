@@ -8,6 +8,19 @@ import pickle
 import matplotlib.pyplot as plt
 
 
+def round_list(raw_list, decimals=4):
+    """
+    Return the same list with each item rounded off.
+
+    Args:
+        raw_list: float list
+        decimals: how many decimal points to round to
+
+    Returns: the rounded list
+    """
+    return [round(item, decimals) for item in raw_list]
+
+
 def get_confusion_matrix(prediction, truth):
     """
     Calculate the confusion matrix for classification network predictions.

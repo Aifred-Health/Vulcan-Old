@@ -19,6 +19,10 @@ import theano.tensor as T
 from utils import get_class
 from utils import display_record
 from utils import get_confusion_matrix
+from utils import round_list
+
+from selu import selu
+from selu import AlphaDropoutLayer
 
 from scipy import integrate
 
@@ -26,8 +30,8 @@ from scipy import integrate
 class Network(object):
     """Class to generate networks and train them."""
 
-    def __init__(self, name, dimensions, input_var, y,
-                 units, dropouts, input_network=None, num_classes=None):
+    def __init__(self, name, dimensions, input_var, y, units, dropouts,
+                 input_network=None, num_classes=None, activation='rectify'):
         """
         Initialize network specified.
 
@@ -49,7 +53,8 @@ class Network(object):
         self.input_network = input_network
         self.network = self.create_dense_network(
             units=units,
-            dropouts=dropouts
+            dropouts=dropouts,
+            nonlinearity=selu if activation == 'selu' else rectify
         )
         self.num_classes = num_classes
         if num_classes is not None and num_classes != 0:
@@ -67,7 +72,7 @@ class Network(object):
             lasagne.layers.get_output(self.network))
         self.record = None
 
-    def create_dense_network(self, units, dropouts):
+    def create_dense_network(self, units, dropouts, nonlinearity):
         """
         Generate a fully connected layer.
 
@@ -100,7 +105,7 @@ class Network(object):
             network = lasagne.layers.DenseLayer(
                 incoming=network,
                 num_units=num_units,
-                nonlinearity=rectify,
+                nonlinearity=nonlinearity,
                 name="%s_dense_%i" % (self.name, i)
             )
             network.add_param(
@@ -115,11 +120,15 @@ class Network(object):
             )
             self.layers.append(network)
 
-            network = lasagne.layers.DropoutLayer(
-                incoming=network,
-                p=prob_dropout,
-                name="%s_dropout_%i" % (self.name, i)
-            )
+            if nonlinearity.__name__ == 'selu':
+                network = AlphaDropoutLayer(incoming=network)
+            else:
+                network = lasagne.layers.DropoutLayer(
+                    incoming=network,
+                    p=prob_dropout,
+                    name="%s_dropout_%i" % (self.name, i)
+                )
+
             self.layers.append(network)
             print '\t\t', lasagne.layers.get_output_shape(network)
 
@@ -403,33 +412,46 @@ class Network(object):
                 npv_macro = np.nan_to_num(sum(tn) / (sum(tn) + sum(fn)))
                 accuracy = np.sum(tp) / np.sum(confusion_matrix)
                 f1 = np.nan_to_num(2 * (ppv * sens) / (ppv + sens))
+
                 f1_macro = np.average(np.nan_to_num(2*sens*ppv / (sens + ppv)))
 
                 print ('%s test\'s results' % self.name)
 
-                print ('\tTP: %s\n\tFP: %s\n\tTN: %s\n\tFN: %s' %
-                       (tp, fp, tn, fn))
+                print ('TP:'),
+                print (tp)
+                print ('FP:'),
+                print (fp)
+                print ('TN:'),
+                print (tn)
+                print ('FN:'),
+                print (fn)
 
-                print ('\tAccuracy: %s' % accuracy)
+                print ('\nAccuracy: %s' % accuracy)
 
                 print ('\tSensitivity: %s' % sens)
+                print(round_list(sens, decimals=3))
                 print ('\t\tMacro Sensitivity: %.4f' % sens_macro)
 
                 print ('\tSpecificity: %s' % spec)
+                print(round_list(spec, decimals=3))
                 print ('\t\tMacro Specificity: %.4f' % spec_macro)
 
-                print ('\tDICE: %s' % dice)
-                print ('\t\tAvg. DICE: %.4f' % np.average(dice))
+                print ('DICE:'),
+                print(round_list(dice, decimals=3))
+                print ('\tAvg. DICE: %.4f\n' % np.average(dice))
 
                 print ('\tPositive Predictive Value: %s' % ppv)
+                print(round_list(ppv, decimals=3))
                 print ('\t\tMacro Positive Predictive Value: %.4f' %
                        ppv_macro)
 
                 print ('\tNegative Predictive Value: %s' % npv)
+                print(round_list(npv, decimals=3))
                 print ('\t\tMacro Negative Predictive Value: %.4f' %
                        npv_macro)
 
                 print ('\tf1-score: %s' % f1)
+                print(round_list(f1, decimals=3))
                 print ('\t\tMacro f1-score: %.4f' % f1_macro)
 
             threshold += 0.01
@@ -438,9 +460,11 @@ class Network(object):
         y = sens
         auc = integrate.trapz(y, spec)  # NEEDS REPAIR
 
+        print ('AUC: %.4f' % auc)
         print ('\tGenerating ROC ...')
-        plt.figure(2)
-        plt.ion()
+        if "DISPLAY" in os.environ:
+            plt.figure(2)
+            plt.ion()
         plt.plot(x, y, label=("AUC: %.4f" % auc))
         plt.title("ROC Curve for %s" % self.name)
         plt.xlabel('1 - specificity')
@@ -448,7 +472,8 @@ class Network(object):
         plt.legend(loc='lower right')
         plt.ylim(0.0, 1.0)
         plt.xlim(0.0, 1.0)
-        plt.show()
+        if "DISPLAY" in os.environ:
+            plt.show()
 
         if not os.path.exists('figures'):
             print ('Creating figures folder')

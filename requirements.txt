@@ -1,5 +1,5 @@
-theano==0.9.0
-lasagne==0.2.dev1
+https://github.com/Theano/Theano/archive/master.zip
+https://github.com/Lasagne/Lasagne/archive/master.zip
 numpy==1.12.0
 scipy==0.17.1
 matplotlib==1.5.3
