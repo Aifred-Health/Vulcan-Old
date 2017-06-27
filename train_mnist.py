@@ -72,7 +72,7 @@ else:
     t10k_images = load_image('data/t10k-images-idx3-ubyte.gz')
 
 if os.path.exists("data/t10k-labels-idx1-ubyte.gz"):
-    print "MNIST t10k labels already exist"
+    print "MNIST t10k labels already exist."
     t10k_labels = load_label("data/t10k-labels-idx1-ubyte.gz")
 else:
     download_file("http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz")
@@ -97,14 +97,14 @@ dense_net = Network(
 # Use to load model from disk
 #dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
 # dense_net.load_model(load_path='models/3_dense.npz')
-dense_net.train(
-    epochs=6,
-    train_x=train_images[:50000],
-    train_y=train_labels[:50000],
-    val_x=train_images[50000:60000],
-    val_y=train_labels[50000:60000],
-    batch_ratio=0.01,
-    plot=True
-)
+# dense_net.train(
+#     epochs=6,
+#     train_x=train_images[:50000],
+#     train_y=train_labels[:50000],
+#     val_x=train_images[50000:60000],
+#     val_y=train_labels[50000:60000],
+#     batch_ratio=0.01,
+#     plot=True
+# )
 
 dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])

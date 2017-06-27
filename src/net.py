@@ -428,31 +428,31 @@ class Network(object):
 
                 print ('\nAccuracy: %s' % accuracy)
 
-                print ('\tSensitivity: %s' % sens)
+                print ('Sensitivity:'),
                 print(round_list(sens, decimals=3))
-                print ('\t\tMacro Sensitivity: %.4f' % sens_macro)
+                print ('\tMacro Sensitivity: %.4f' % sens_macro)
 
-                print ('\tSpecificity: %s' % spec)
+                print ('Specificity:'),
                 print(round_list(spec, decimals=3))
-                print ('\t\tMacro Specificity: %.4f' % spec_macro)
+                print ('\tMacro Specificity: %.4f' % spec_macro)
 
                 print ('DICE:'),
                 print(round_list(dice, decimals=3))
-                print ('\tAvg. DICE: %.4f\n' % np.average(dice))
+                print ('\tAvg. DICE: %.4f' % np.average(dice))
 
-                print ('\tPositive Predictive Value: %s' % ppv)
+                print ('Positive Predictive Value:'),
                 print(round_list(ppv, decimals=3))
-                print ('\t\tMacro Positive Predictive Value: %.4f' %
+                print ('\tMacro Positive Predictive Value: %.4f' %
                        ppv_macro)
 
-                print ('\tNegative Predictive Value: %s' % npv)
+                print ('Negative Predictive Value:'),
                 print(round_list(npv, decimals=3))
-                print ('\t\tMacro Negative Predictive Value: %.4f' %
+                print ('\tMacro Negative Predictive Value: %.4f' %
                        npv_macro)
 
-                print ('\tf1-score: %s' % f1)
+                print ('f1-score:'),
                 print(round_list(f1, decimals=3))
-                print ('\t\tMacro f1-score: %.4f' % f1_macro)
+                print ('\tMacro f1-score: %.4f' % f1_macro)
 
             threshold += 0.01
 
