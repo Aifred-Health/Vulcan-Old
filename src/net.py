@@ -388,19 +388,23 @@ class Network(object):
             sensitivity = np.nan_to_num(tp / (tp + fn))
             specificity = np.nan_to_num(tn / (tn + fp))
 
-            x = np.append(x, 1.0 - np.average(specificity))
-            y = np.append(y, np.average(sensitivity))
+            # x = np.append(x, 1.0 - np.average(specificity))
+            # y = np.append(y, np.average(sensitivity))
 
             if abs(threshold - 0.5) < 1e-08:
-                # accuracy = (tp + tn) / (tp + fp + tn + fn)
-                accuracy = np.sum(tp) / np.sum(confusion_matrix)
                 sens = np.nan_to_num(tp / (tp + fn))  # recall
+                sens_macro = np.nan_to_num(sum(tp) / (sum(tp) + sum(fn)))
                 spec = np.nan_to_num(tn / (tn + fp))
+                spec_macro = np.nan_to_num(sum(tn) / (sum(tn) + sum(fp)))
                 dice = 2 * tp / (2 * tp + fp + fn)
                 ppv = np.nan_to_num(tp / (tp + fp))  # precision
+                ppv_macro = np.nan_to_num(sum(tp) / (sum(tp) + sum(fp)))
                 npv = np.nan_to_num(tn / (tn + fn))
+                npv_macro = np.nan_to_num(sum(tn) / (sum(tn) + sum(fn)))
+                accuracy = np.sum(tp) / np.sum(confusion_matrix)
                 f1 = np.nan_to_num(2 * (ppv * sens) / (ppv + sens))
-                #import pudb; pu.db
+                f1_macro = np.average(np.nan_to_num(2*sens*ppv / (sens + ppv)))
+
                 print ('%s test\'s results' % self.name)
 
                 print ('\tTP: %s\n\tFP: %s\n\tTN: %s\n\tFN: %s' %
@@ -409,28 +413,30 @@ class Network(object):
                 print ('\tAccuracy: %s' % accuracy)
 
                 print ('\tSensitivity: %s' % sens)
-                print ('\t\tAvg. Sensitivity: %.4f' % np.average(sens))
+                print ('\t\tMacro Sensitivity: %.4f' % sens_macro)
 
                 print ('\tSpecificity: %s' % spec)
-                print ('\t\tAvg. Specificity: %.4f' % np.average(spec))
+                print ('\t\tMacro Specificity: %.4f' % spec_macro)
 
                 print ('\tDICE: %s' % dice)
                 print ('\t\tAvg. DICE: %.4f' % np.average(dice))
 
                 print ('\tPositive Predictive Value: %s' % ppv)
-                print ('\t\tAvg. Positive Predictive Value: %.4f' %
-                       np.average(ppv))
+                print ('\t\tMacro Positive Predictive Value: %.4f' %
+                       ppv_macro)
 
                 print ('\tNegative Predictive Value: %s' % npv)
-                print ('\t\tAvg. Negative Predictive Value: %.4f' %
-                       np.average(npv))
+                print ('\t\tMacro Negative Predictive Value: %.4f' %
+                       npv_macro)
 
                 print ('\tf1-score: %s' % f1)
-                print ('\t\tAvg. f1-score: %.4f' % np.average(f1))
+                print ('\t\tMacro f1-score: %.4f' % f1_macro)
 
             threshold += 0.01
 
-        auc = integrate.trapz(y, x)  # NEEDS REPAIR
+        x = 1.0 - spec
+        y = sens
+        auc = integrate.trapz(y, spec)  # NEEDS REPAIR
 
         print ('\tGenerating ROC ...')
         plt.figure(2)
