@@ -7,6 +7,8 @@ import pickle
 
 import matplotlib.pyplot as plt
 
+from datetime import datetime
+
 
 def round_list(raw_list, decimals=4):
     """
@@ -138,3 +140,8 @@ def display_record(record, load_path=None):
 
     plt.show()
     plt.pause(0.0001)
+
+
+def get_timestamp():
+    """Return a 14 digit timestamp."""
+    return datetime.now().strftime('%Y%m%d%H%M%S_')

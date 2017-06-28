@@ -1,0 +1,8 @@
+{
+	"timestamp_dense_net": {
+		"dimensions": ["None", 784],
+		"units": [1024, 1024, 784],
+		"dropouts": [0.2, 0.2, 0.2],
+		"input_"
+	}
+}

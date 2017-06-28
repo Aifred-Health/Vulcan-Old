@@ -23,11 +23,18 @@ from utils import get_class
 from utils import display_record
 from utils import get_confusion_matrix
 from utils import round_list
+from utils import get_timestamp
 
 from selu import selu
 from selu import AlphaDropoutLayer
 
 from scipy import integrate
+
+import json
+
+import dill
+
+sys.setrecursionlimit(5000)
 
 
 class Network(object):
@@ -51,6 +58,8 @@ class Network(object):
         self.layers = []
         self.cost = None
         self.dimensions = dimensions
+        self.units = units
+        self.dropouts = dropouts
         self.input_var = input_var
         self.y = y
         self.input_network = input_network
@@ -74,6 +83,7 @@ class Network(object):
             [i for i in [self.input_var] if i],
             lasagne.layers.get_output(self.network))
         self.record = None
+        self.timestamp = get_timestamp()
 
     def create_dense_network(self, units, dropouts, nonlinearity):
         """
@@ -349,6 +359,7 @@ class Network(object):
                 plt.ion()
                 plt.figure(1)
                 display_record(record=self.record)
+        self.timestamp = get_timestamp()
 
     def conduct_test(self, test_x, test_y):
         """
@@ -369,7 +380,7 @@ class Network(object):
                                            convert_to_class=False)
         threshold = 0.0
         x = y = np.array([])
-        old_x = old_y = np.array([])
+
         while (threshold < 1.0):
             prediction = np.where(raw_prediction > threshold, 1.0, 0.0)
             prediction = get_class(prediction)
@@ -390,9 +401,6 @@ class Network(object):
 
             # sensitivity = np.nan_to_num(tp / (tp + fn))
             # specificity = np.nan_to_num(tn / (tn + fp))
-
-            # old_x = np.append(old_x, 1.0 - np.average(specificity))
-            # old_y = np.append(old_y, np.average(sensitivity))
 
             if abs(threshold - 0.5) < 1e-08:
                 sens = np.nan_to_num(tp / (tp + fn))  # recall
@@ -450,6 +458,7 @@ class Network(object):
                 print ('\tMacro f1-score: %.4f' % f1_macro)
 
             threshold += 0.01
+
         x = 1.0 - spec
         y = sens
         auc = integrate.trapz(y, spec)  # NEEDS REPAIR
@@ -484,12 +493,17 @@ class Network(object):
         if not os.path.exists(save_path):
             print ('Path not found, creating %s' % save_path)
             os.makedirs(save_path)
-        file_path = os.path.join(save_path, self.name)
-        network_name = '%s.npz' % (file_path)
+        file_path = os.path.join(save_path, "%s%s" % (self.timestamp,
+                                                      self.name))
+        network_name = '%s.network' % (file_path)
         print ('Saving model as: %s' % network_name)
-        np.savez(network_name,
-                 *lasagne.layers.get_all_param_values(self.network))
 
+        with open(network_name, 'wb') as f:
+            dill.dump(self, f, protocol=dill.HIGHEST_PROTOCOL)
+
+        self.save_metadata(file_path)
+
+    @classmethod
     def load_model(self, load_path):
         """
         Will load the model paramters from npz file.
@@ -498,9 +512,12 @@ class Network(object):
             load_path: the exact location where the model has been saved.
         """
         print ('Loading model from: %s' % load_path)
-        with np.load(load_path) as f:
-            param_values = [f['arr_%d' % i] for i in range(len(f.files))]
-            lasagne.layers.set_all_param_values(self.network, param_values)
+        # with np.load(load_path) as f:
+        #     param_values = [f['arr_%d' % i] for i in range(len(f.files))]
+        #     lasagne.layers.set_all_param_values(self.network, param_values)
+        with open(load_path, 'rb') as f:
+            instance = dill.load(f)
+        return instance
 
     def save_record(self, save_path):
         """
@@ -515,12 +532,37 @@ class Network(object):
                 print ('Path not found, creating %s' % save_path)
                 os.makedirs(save_path)
 
-            file_path = os.path.join(save_path, self.name)
+            file_path = os.path.join(save_path, "%s%s" % (self.timestamp,
+                                                          self.name))
             print ('Saving records as: %s_stats.pickle' % file_path)
             with open('%s_stats.pickle' % file_path, 'w') as output:
                 pickle.dump(self.record, output, -1)
         else:
             print ("Error: Nothing to save. Try training the model first.")
+
+    def save_metadata(self, file_path):
+        """
+        Will save network configuration alongside weights.
+
+        Args:
+            file_path: the npz file path without the npz
+        """
+        config = {
+            "{}".format(file_path): {
+                "dimensions": self.dimensions,
+                "input_var": "{}".format(self.input_var.type),
+                "y": "{}".format(self.y.type),
+                "units": self.units,
+                "dropouts": self.dropouts,
+                "num_classes": self.num_classes
+            }
+        }
+        json_file = "{}_metadata.json".format(file_path)
+        print ('Saving metadata to %s' % json_file)
+        with open(json_file, 'w') as file:
+            json.dump(config, file)
+
+    # def save_object():
 
 if __name__ == "__main__":
     pass

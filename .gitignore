@@ -1,5 +1,6 @@
 data
 figures
+models
 *.png
 *.csv
 *.npz
@@ -7,3 +8,5 @@ figures
 *.pyc
 *.gz
 *.npy
+*.network
+*.json

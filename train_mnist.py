@@ -84,7 +84,7 @@ input_var = T.fmatrix('input')
 y = T.fmatrix('truth')
 
 dense_net = Network(
-    name='3_dense',
+    name='3_dense_test',
     dimensions=(None, int(train_images.shape[1])),
     input_var=input_var,
     y=y,
@@ -95,16 +95,21 @@ dense_net = Network(
     activation='rectify'
 )
 # Use to load model from disk
-dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
-# dense_net.load_model(load_path='models/3_dense.npz')
+# dense_net.save_model(save_path='models')
+# dense_net = Network.load_model('models/3_dense_test.obj')
+
+# dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
+# # dense_net.load_model(load_path='models/3_dense.npz')
 dense_net.train(
     epochs=6,
     train_x=train_images[:50000],
     train_y=train_labels[:50000],
     val_x=train_images[50000:60000],
     val_y=train_labels[50000:60000],
-    batch_ratio=0.01,
+    batch_ratio=0.5,
     plot=True
 )
 
-dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
+dense_net.save_model(save_path='models')
+
+# dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])

@@ -43,7 +43,7 @@ class AlphaDropoutLayer(Layer):
     -----
     The alpha dropout layer is a regularizer that randomly sets input values to
     zero and also applies a normalization function to bring the mean to 0
-    and the variance to 1; see [1]_, [2]_ for why this might improve
+    and the variance to 1; see [1]_for why this might improve
     generalization. The behaviour of the layer depends on the ``deterministic``
     keyword argument passed to :func:`lasagne.layers.get_output`. If ``True``,
     the layer behaves deterministically, and passes on the input unchanged. If
@@ -52,11 +52,7 @@ class AlphaDropoutLayer(Layer):
     ``deterministic=True`` at test time.
     References
     ----------
-    .. [1] Hinton, G., Srivastava, N., Krizhevsky, A., Sutskever, I.,
-           Salakhutdinov, R. R. (2012):
-           Improving neural networks by preventing co-adaptation of feature
-           detectors. arXiv preprint arXiv:1207.0580.
-    .. [2] Klambauer, G., Unterthiner, T., Mayr, A., Hochreiter, S. (2017):
+    .. [1] Klambauer, G., Unterthiner, T., Mayr, A., Hochreiter, S. (2017):
            Self-Normalizing Neural Networks. arXiv preprint: 1706.02515
     """
 
@@ -94,7 +90,8 @@ class AlphaDropoutLayer(Layer):
                 mask_shape = tuple(1 if a in shared_axes else s
                                    for a, s in enumerate(mask_shape))
 
-            mask = self._srng.uniform(mask_shape, dtype=input.dtype) < retain_prob
+            mask = self._srng.uniform(mask_shape,
+                                      dtype=input.dtype) < retain_prob
 
             if self.shared_axes:
                 bcast = tuple(bool(s == 1) for s in mask_shape)
