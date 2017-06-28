@@ -11,7 +11,7 @@ import numpy as np
 import lasagne
 from lasagne.nonlinearities import sigmoid, softmax, rectify
 
-import matplotlib.pyplot as plt
+import matplotlib
 
 import theano
 import theano.tensor as T
@@ -25,6 +25,10 @@ from selu import selu
 from selu import AlphaDropoutLayer
 
 from scipy import integrate
+
+if "DISPLAY" not in os.environ:
+    matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 
 class Network(object):
@@ -295,9 +299,6 @@ class Network(object):
             validation_error=[],
             validation_accuracy=[]
         )
-        if plot:
-            plt.ion()
-            plt.figure(1)
 
         if train_x.shape[0] * batch_ratio < 1.0:
             batch_ratio = 1.0 / train_x.shape[0]
@@ -346,6 +347,8 @@ class Network(object):
                    % (hour, minute, second))
 
             if plot:
+                plt.ion()
+                plt.figure(1)
                 display_record(record=self.record)
 
     def conduct_test(self, test_x, test_y):
@@ -367,6 +370,7 @@ class Network(object):
                                            convert_to_class=False)
         threshold = 0.0
         x = y = np.array([])
+        old_x = old_y = np.array([])
         while (threshold < 1.0):
             prediction = np.where(raw_prediction > threshold, 1.0, 0.0)
             prediction = get_class(prediction)
@@ -385,20 +389,11 @@ class Network(object):
             # sum each row and remove diagonal
             fn = (confusion_matrix.sum(axis=1) - tp).astype('float32')
 
-            # tp = float(np.sum(np.logical_and(prediction == 1.0,
-            #                                  test_y == 1.0)))
-            # tn = float(np.sum(np.logical_and(prediction == 0.0,
-            #                                  test_y == 0.0)))
-            # fp = float(np.sum(np.logical_and(prediction == 1.0,
-            #                                  test_y == 0.0)))
-            # fn = float(np.sum(np.logical_and(prediction == 0.0,
-            #                                  test_y == 1.0)))
+            # sensitivity = np.nan_to_num(tp / (tp + fn))
+            # specificity = np.nan_to_num(tn / (tn + fp))
 
-            sensitivity = np.nan_to_num(tp / (tp + fn))
-            specificity = np.nan_to_num(tn / (tn + fp))
-
-            # x = np.append(x, 1.0 - np.average(specificity))
-            # y = np.append(y, np.average(sensitivity))
+            # old_x = np.append(old_x, 1.0 - np.average(specificity))
+            # old_y = np.append(old_y, np.average(sensitivity))
 
             if abs(threshold - 0.5) < 1e-08:
                 sens = np.nan_to_num(tp / (tp + fn))  # recall
@@ -413,7 +408,8 @@ class Network(object):
                 accuracy = np.sum(tp) / np.sum(confusion_matrix)
                 f1 = np.nan_to_num(2 * (ppv * sens) / (ppv + sens))
 
-                f1_macro = np.average(np.nan_to_num(2*sens*ppv / (sens + ppv)))
+                f1_macro = np.average(np.nan_to_num(2 * sens * ppv /
+                                                    (sens + ppv)))
 
                 print ('%s test\'s results' % self.name)
 
@@ -455,16 +451,15 @@ class Network(object):
                 print ('\tMacro f1-score: %.4f' % f1_macro)
 
             threshold += 0.01
-
         x = 1.0 - spec
         y = sens
         auc = integrate.trapz(y, spec)  # NEEDS REPAIR
 
         print ('AUC: %.4f' % auc)
         print ('\tGenerating ROC ...')
-        if "DISPLAY" in os.environ:
-            plt.figure(2)
-            plt.ion()
+
+        plt.figure(2)
+        plt.ion()
         plt.plot(x, y, label=("AUC: %.4f" % auc))
         plt.title("ROC Curve for %s" % self.name)
         plt.xlabel('1 - specificity')
@@ -472,8 +467,7 @@ class Network(object):
         plt.legend(loc='lower right')
         plt.ylim(0.0, 1.0)
         plt.xlim(0.0, 1.0)
-        if "DISPLAY" in os.environ:
-            plt.show()
+        plt.show()
 
         if not os.path.exists('figures'):
             print ('Creating figures folder')
