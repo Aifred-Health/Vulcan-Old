@@ -12,6 +12,10 @@ import lasagne
 from lasagne.nonlinearities import sigmoid, softmax, rectify
 
 import matplotlib
+if "DISPLAY" not in os.environ:
+    import pudb; pu.db
+    matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 import theano
 import theano.tensor as T
@@ -25,10 +29,6 @@ from selu import selu
 from selu import AlphaDropoutLayer
 
 from scipy import integrate
-
-if "DISPLAY" not in os.environ:
-    matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 
 
 class Network(object):
