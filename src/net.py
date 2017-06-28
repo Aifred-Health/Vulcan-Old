@@ -13,7 +13,6 @@ from lasagne.nonlinearities import sigmoid, softmax, rectify
 
 import matplotlib
 if "DISPLAY" not in os.environ:
-    import pudb; pu.db
     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 

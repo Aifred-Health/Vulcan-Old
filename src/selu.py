@@ -21,7 +21,8 @@ def selu(x):
 class AlphaDropoutLayer(Layer):
     """Dropout layer.
 
-    Sets values to zero with probability p. See notes for disabling dropout
+    Sets values to zero with probability p. Will also converge the remaining
+    neurons to mean 0 and a variance of 1 unit. See notes for disabling dropout
     during testing.
     Parameters
     ----------
