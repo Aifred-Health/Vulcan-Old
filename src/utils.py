@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 
 from datetime import datetime
 
+from sklearn.metrics import confusion_matrix
+
 
 def round_list(raw_list, decimals=4):
     """
@@ -35,8 +37,6 @@ def get_confusion_matrix(prediction, truth):
 
     Returns: the confusion matrix
     """
-    from sklearn.metrics import confusion_matrix
-
     if len(prediction.shape) == 2:
         prediction = prediction[:, 0]
     if len(truth.shape) == 2:
@@ -55,6 +55,7 @@ def get_one_hot(in_matrix):
 
     Returns: a one-hot matrix representing the categorized matrix
     """
+    print('Getting one-hot encodings from class list...')
     if in_matrix.dtype.name == 'category':
         num_classes = len(in_matrix.cat.categories)
         custum_array = in_matrix.cat.codes
@@ -86,6 +87,7 @@ def get_class(in_matrix):
 
     Returns: Class array
     """
+    print('Getting class matrix from one-hot encodings...')
     return np.expand_dims(np.argmax(in_matrix, axis=1), axis=1)
 
 

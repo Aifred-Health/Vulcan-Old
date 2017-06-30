@@ -41,7 +41,8 @@ class Network(object):
     """Class to generate networks and train them."""
 
     def __init__(self, name, dimensions, input_var, y, units, dropouts,
-                 input_network=None, num_classes=None, activation='rectify'):
+                 input_network=None, num_classes=None, activation='rectify',
+                 learning_rate=0.01):
         """
         Initialize network specified.
 
@@ -60,6 +61,7 @@ class Network(object):
         self.dimensions = dimensions
         self.units = units
         self.dropouts = dropouts
+        self.learning_rate = learning_rate
         self.input_var = input_var
         self.y = y
         self.input_network = input_network
@@ -223,7 +225,7 @@ class Network(object):
         updates = lasagne.updates.adam(
             loss_or_grads=self.cost,
             params=self.params,
-            learning_rate=0.001,
+            learning_rate=self.learning_rate,
             beta1=0.9,
             beta2=0.999,
             epsilon=1e-08
