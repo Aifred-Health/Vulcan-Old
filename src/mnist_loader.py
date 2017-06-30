@@ -8,35 +8,37 @@ def load_mnist():
     """
     Get the MNIST training data (downloading it if it is not already accessible),
     and return it as NumPy arrays
-    
+
     :return: (train_images, train_labels, test_images, test_labels)
     """
     if os.path.exists("data/"):
-       print("data folder already exists")
+        print("data folder already exists")
     else:
-       print("Creating data folder")
-       os.makedirs("data/")
+        print("Creating data folder")
+        os.makedirs("data/")
 
     if not os.path.exists("data/train-images-idx3-ubyte.gz"):
         print("No MNIST training images found--downloading")
         _download_file("http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz")
-
+    print ('Loading training images...')
     train_images = _load_image('data/train-images-idx3-ubyte.gz')
 
     if not os.path.exists("data/train-labels-idx1-ubyte.gz"):
         print("No MNIST training labels found--downloading")
         _download_file("http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz")
-
+    print ('Loading training labels...')
     train_labels = _load_label('data/train-labels-idx1-ubyte.gz')
 
     if not os.path.exists("data/t10k-images-idx3-ubyte.gz"):
         print("No MNIST test (10k) images found--downloading")
         _download_file("http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz")
+    print ('Loading testing images...')
     t10k_images = _load_image("data/t10k-images-idx3-ubyte.gz")
 
     if not os.path.exists("data/t10k-labels-idx1-ubyte.gz"):
         print("No MNIST test (10k) labels found--downloading")
         _download_file("http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz")
+    print ('Loading testing labels...')
     t10k_labels = _load_label('data/t10k-labels-idx1-ubyte.gz')
 
     return train_images, train_labels, t10k_images, t10k_labels
@@ -69,7 +71,7 @@ def _load_label(filename):
 
 
 def main():
-    """Totally useless main"""
+    """Totally useless main."""
     (train_iamges, train_labels, t10k_images, t10k_labels) = load_mnist()
 
 if __name__ == "__main__":

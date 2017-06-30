@@ -41,7 +41,7 @@ dense_net.train(
     plot=True
 )
 
-dense_net.save_model()
-dense_net.save_record()
+# dense_net.save_model()
+# dense_net.save_record()
 
 # dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])

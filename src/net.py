@@ -101,12 +101,12 @@ class Network(object):
             print ("Cannot build network: units and dropouts don't correspond")
             return
 
-        print ("Creating %s Network..." % self.name)
+        print ("Creating {} Network...".format(self.name))
         if self.input_network is None:
             print ('\tInput Layer:')
             network = lasagne.layers.InputLayer(shape=self.dimensions,
                                                 input_var=self.input_var,
-                                                name="%s_input" % self.name)
+                                                name="{}_input".format(self.name))
             print '\t\t', lasagne.layers.get_output_shape(network)
             self.layers.append(network)
         else:
@@ -119,7 +119,7 @@ class Network(object):
                 incoming=network,
                 num_units=num_units,
                 nonlinearity=nonlinearity,
-                name="%s_dense_%i" % (self.name, i)
+                name="{}_dense_{}".format(self.name, i)
             )
             network.add_param(
                 network.W,
@@ -139,7 +139,7 @@ class Network(object):
                 network = lasagne.layers.DropoutLayer(
                     incoming=network,
                     p=prob_dropout,
-                    name="%s_dropout_%i" % (self.name, i)
+                    name="{}_dropout_{}".format(self.name, i)
                 )
 
             self.layers.append(network)
@@ -163,7 +163,7 @@ class Network(object):
             incoming=network,
             num_units=num_classes,
             nonlinearity=nonlinearity,
-            name="%s_softmax" % self.name
+            name="{}_softmax".format(self.name)
         )
         network.add_param(
             network.W,
@@ -202,7 +202,7 @@ class Network(object):
         Returns: theano function that takes as input (train_x,train_y)
                  and trains the net
         """
-        print ("Creating %s Trainer..." % self.name)
+        print ("Creating {} Trainer...".format(self.name))
         # get network output
         out = lasagne.layers.get_output(self.network)
         # get all trainable parameters from network
@@ -244,7 +244,7 @@ class Network(object):
         Returns: theano function that takes input (train_x,train_y)
                  and returns error and accuracy
         """
-        print ("Creating %s Validator..." % self.name)
+        print ("Creating {} Validator...".format(self.name))
         # create prediction
         val_prediction = lasagne.layers.get_output(
             self.network,
@@ -295,7 +295,7 @@ class Network(object):
             plot: boolean if training curves should be plotted while training
 
         """
-        print ('\nTraining %s in progress...\n' % self.name)
+        print ('\nTraining {} in progress...\n'.format(self.name))
 
         if batch_ratio > 1:
             batch_ratio = 1
@@ -311,12 +311,12 @@ class Network(object):
 
         if train_x.shape[0] * batch_ratio < 1.0:
             batch_ratio = 1.0 / train_x.shape[0]
-            print ('Warning: Batch ratio too small. Changing to %.5f' %
-                   batch_ratio)
+            print ('Warning: Batch ratio too small. Changing to {:.5f}'.format
+                   (batch_ratio))
         try:
             for epoch in range(epochs):
                 epoch_time = time.time()
-                print ("--> Epoch: %d | Epochs left %d" % (
+                print ("--> Epoch: {} | Epochs left {}".format(
                     epoch,
                     epochs - epoch - 1
                 ))
@@ -331,7 +331,7 @@ class Network(object):
                     self.trainer(b_x, b_y)
 
                     sys.stdout.flush()
-                    sys.stdout.write('\r\tDone %.1f %% of the epoch' %
+                    sys.stdout.write('\r\tDone {:.1f}% of the epoch'.format
                                      (100 * (i + 1) * batch_ratio))
 
                 train_error, train_accuracy = self.validator(train_x, train_y)
@@ -344,7 +344,7 @@ class Network(object):
                 self.record['validation_error'].append(validation_error)
                 self.record['validation_accuracy'].append(validation_accuracy)
                 epoch_time_spent = time.time() - epoch_time
-                print ("\n    error: %s and accuracy: %s in %.2fs" % (
+                print ("\n\terror: {} and accuracy: {} in {:.2f}s".format(
                     train_error,
                     train_accuracy,
                     epoch_time_spent)
@@ -352,8 +352,8 @@ class Network(object):
                 eta = epoch_time_spent * (epochs - epoch - 1)
                 minute, second = divmod(eta, 60)
                 hour, minute = divmod(minute, 60)
-                print ("    Estimated time left: %d:%02d:%02d (h:m:s)\n"
-                       % (hour, minute, second))
+                print ("\tEstimated time left: {}:{}:{} (h:m:s)\n"
+                       .format(int(hour), int(minute), int(second)))
 
                 if plot:
                     plt.ion()
@@ -421,7 +421,7 @@ class Network(object):
                 f1_macro = np.average(np.nan_to_num(2 * sens * ppv /
                                                     (sens + ppv)))
 
-                print ('%s test\'s results' % self.name)
+                print ('{} test\'s results'.format(self.name))
 
                 print ('TP:'),
                 print (tp)
@@ -432,33 +432,33 @@ class Network(object):
                 print ('FN:'),
                 print (fn)
 
-                print ('\nAccuracy: %s' % accuracy)
+                print ('\nAccuracy: {}'.format(accuracy))
 
                 print ('Sensitivity:'),
                 print(round_list(sens, decimals=3))
-                print ('\tMacro Sensitivity: %.4f' % sens_macro)
+                print ('\tMacro Sensitivity: {:.4f}'.format(sens_macro))
 
                 print ('Specificity:'),
                 print(round_list(spec, decimals=3))
-                print ('\tMacro Specificity: %.4f' % spec_macro)
+                print ('\tMacro Specificity: {:.4f}'.format(spec_macro))
 
                 print ('DICE:'),
                 print(round_list(dice, decimals=3))
-                print ('\tAvg. DICE: %.4f' % np.average(dice))
+                print ('\tAvg. DICE: {:.4f}'.format(np.average(dice)))
 
                 print ('Positive Predictive Value:'),
                 print(round_list(ppv, decimals=3))
-                print ('\tMacro Positive Predictive Value: %.4f' %
-                       ppv_macro)
+                print ('\tMacro Positive Predictive Value: {:.4f}'.format
+                       (ppv_macro))
 
                 print ('Negative Predictive Value:'),
                 print(round_list(npv, decimals=3))
-                print ('\tMacro Negative Predictive Value: %.4f' %
-                       npv_macro)
+                print ('\tMacro Negative Predictive Value: {:.4f}'.format
+                       (npv_macro))
 
                 print ('f1-score:'),
                 print(round_list(f1, decimals=3))
-                print ('\tMacro f1-score: %.4f' % f1_macro)
+                print ('\tMacro f1-score: {:.4f}'.format(f1_macro))
 
             threshold += 0.01
 
@@ -466,13 +466,13 @@ class Network(object):
         y = sens
         auc = integrate.trapz(y, spec)  # NEEDS REPAIR
 
-        print ('AUC: %.4f' % auc)
+        print ('AUC: {:.4f}'.format(auc))
         print ('\tGenerating ROC ...')
 
         plt.figure(2)
         plt.ion()
-        plt.plot(x, y, label=("AUC: %.4f" % auc))
-        plt.title("ROC Curve for %s" % self.name)
+        plt.plot(x, y, label=("AUC: {:.4f}".format(auc)))
+        plt.title("ROC Curve for {}".format(self.name))
         plt.xlabel('1 - specificity')
         plt.ylabel('sensitivity')
         plt.legend(loc='lower right')
@@ -483,11 +483,11 @@ class Network(object):
         if not os.path.exists('figures'):
             print ('Creating figures folder')
             os.makedirs('figures')
-        print ('\tSaving figure to file: figures/%s%s_ROC.png' % (
+        print ('\tSaving figure to file: figures/{}{}_ROC.png'.format(
             self.timestamp,
             self.name)
         )
-        plt.savefig('figures/%s%s_ROC.png' % (self.timestamp, self.name))
+        plt.savefig('figures/{}{}_ROC.png'.format(self.timestamp, self.name))
 
     def save_model(self, save_path='models'):
         """
@@ -497,12 +497,12 @@ class Network(object):
             save_path: the location where you want to save the params
         """
         if not os.path.exists(save_path):
-            print ('Path not found, creating %s' % save_path)
+            print ('Path not found, creating {}'.format(save_path))
             os.makedirs(save_path)
-        file_path = os.path.join(save_path, "%s%s" % (self.timestamp,
-                                                      self.name))
-        network_name = '%s.network' % (file_path)
-        print ('Saving model as: %s' % network_name)
+        file_path = os.path.join(save_path, "{}{}".format(self.timestamp,
+                                                          self.name))
+        network_name = '{}.network'.format(file_path)
+        print ('Saving model as: {}'.format(network_name))
 
         with open(network_name, 'wb') as f:
             pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
@@ -517,10 +517,7 @@ class Network(object):
         Args:
             load_path: the exact location where the model has been saved.
         """
-        print ('Loading model from: %s' % load_path)
-        # with np.load(load_path) as f:
-        #     param_values = [f['arr_%d' % i] for i in range(len(f.files))]
-        #     lasagne.layers.set_all_param_values(self.network, param_values)
+        print ('Loading model from: {}'.format(load_path))
         with open(load_path, 'rb') as f:
             instance = pickle.load(f)
         return instance
@@ -534,13 +531,13 @@ class Network(object):
         """
         if self.record is not None:
             if not os.path.exists(save_path):
-                print ('Path not found, creating %s' % save_path)
+                print ('Path not found, creating {}'.format(save_path))
                 os.makedirs(save_path)
 
-            file_path = os.path.join(save_path, "%s%s" % (self.timestamp,
-                                                          self.name))
-            print ('Saving records as: %s_stats.pickle' % file_path)
-            with open('%s_stats.pickle' % file_path, 'w') as output:
+            file_path = os.path.join(save_path, "{}{}".format(self.timestamp,
+                                                              self.name))
+            print ('Saving records as: {}_stats.pickle'.format(file_path))
+            with open('{}_stats.pickle'.format(file_path), 'w') as output:
                 pickle.dump(self.record, output, -1)
         else:
             print ("Error: Nothing to save. Try training the model first.")
@@ -563,7 +560,7 @@ class Network(object):
             }
         }
         json_file = "{}_metadata.json".format(file_path)
-        print ('Saving metadata to %s' % json_file)
+        print ('Saving metadata to {}'.format(json_file))
         with open(json_file, 'w') as file:
             json.dump(config, file)
 
