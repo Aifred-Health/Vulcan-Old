@@ -100,7 +100,9 @@ def display_record(record, load_path=None):
     if load_path is not None:
         with open(load_path) as in_file:
             record = pickle.load(in_file)
-        plt.title('Training curve for model: %s' % os.path.basename(load_path))
+        plt.title('Training curve for model: {}'.format(
+            os.path.basename(load_path))
+        )
     else:
         plt.title('Training curve')
 
