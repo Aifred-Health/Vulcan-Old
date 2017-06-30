@@ -8,7 +8,8 @@ import shutil
 
 
 from src.utils import get_one_hot
-import mnist_loader
+
+from src import mnist_loader
 
 (train_images, train_labels, test_images, test_labels) = mnist_loader.load_mnist()
 
@@ -32,14 +33,14 @@ autoencoder = Network(
 # autoencoder.load_model(load_path='models/autoencoder_mnist.npz')
 
 autoencoder.train(
-     epochs=10,
-     train_x=train_images[:50000],
-     train_y=train_images[:50000],
-     val_x=train_images[50000:60000],
-     val_y=train_images[50000:60000],
-     batch_ratio=0.5,
-     plot=True
- )
+    epochs=10,
+    train_x=train_images[:50000],
+    train_y=train_images[:50000],
+    val_x=train_images[50000:60000],
+    val_y=train_images[50000:60000],
+    batch_ratio=0.5,
+    plot=True
+)
 autoencoder.save_model(save_path='models')
 
 dense_net = Network(

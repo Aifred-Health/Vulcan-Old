@@ -32,7 +32,7 @@ from scipy import integrate
 
 import json
 
-import dill
+import pickle
 
 sys.setrecursionlimit(5000)
 
@@ -313,53 +313,56 @@ class Network(object):
             batch_ratio = 1.0 / train_x.shape[0]
             print ('Warning: Batch ratio too small. Changing to %.5f' %
                    batch_ratio)
+        try:
+            for epoch in range(epochs):
+                epoch_time = time.time()
+                print ("--> Epoch: %d | Epochs left %d" % (
+                    epoch,
+                    epochs - epoch - 1
+                ))
 
-        for epoch in range(epochs):
-            epoch_time = time.time()
-            print ("--> Epoch: %d | Epochs left %d" % (
-                epoch,
-                epochs - epoch - 1
-            ))
+                for i in range(int(1 / batch_ratio)):
+                    size = train_x.shape[0]
+                    b_x = train_x[int(size * (i * batch_ratio)):
+                                  int(size * ((i + 1) * batch_ratio))]
+                    b_y = train_y[int(size * (i * batch_ratio)):
+                                  int(size * ((i + 1) * batch_ratio))]
 
-            for i in range(int(1 / batch_ratio)):
-                size = train_x.shape[0]
-                b_x = train_x[int(size * (i * batch_ratio)):
-                              int(size * ((i + 1) * batch_ratio))]
-                b_y = train_y[int(size * (i * batch_ratio)):
-                              int(size * ((i + 1) * batch_ratio))]
+                    self.trainer(b_x, b_y)
 
-                self.trainer(b_x, b_y)
+                    sys.stdout.flush()
+                    sys.stdout.write('\r\tDone %.1f %% of the epoch' %
+                                     (100 * (i + 1) * batch_ratio))
 
-                sys.stdout.flush()
-                sys.stdout.write('\r\tDone %.1f %% of the epoch' %
-                                 (100 * (i + 1) * batch_ratio))
+                train_error, train_accuracy = self.validator(train_x, train_y)
+                validation_error, validation_accuracy = self.validator(val_x,
+                                                                       val_y)
 
-            train_error, train_accuracy = self.validator(train_x, train_y)
-            validation_error, validation_accuracy = self.validator(val_x,
-                                                                   val_y)
+                self.record['epoch'].append(epoch)
+                self.record['train_error'].append(train_error)
+                self.record['train_accuracy'].append(train_accuracy)
+                self.record['validation_error'].append(validation_error)
+                self.record['validation_accuracy'].append(validation_accuracy)
+                epoch_time_spent = time.time() - epoch_time
+                print ("\n    error: %s and accuracy: %s in %.2fs" % (
+                    train_error,
+                    train_accuracy,
+                    epoch_time_spent)
+                )
+                eta = epoch_time_spent * (epochs - epoch - 1)
+                minute, second = divmod(eta, 60)
+                hour, minute = divmod(minute, 60)
+                print ("    Estimated time left: %d:%02d:%02d (h:m:s)\n"
+                       % (hour, minute, second))
 
-            self.record['epoch'].append(epoch)
-            self.record['train_error'].append(train_error)
-            self.record['train_accuracy'].append(train_accuracy)
-            self.record['validation_error'].append(validation_error)
-            self.record['validation_accuracy'].append(validation_accuracy)
-            epoch_time_spent = time.time() - epoch_time
-            print ("\n    error: %s and accuracy: %s in %.2fs" % (
-                train_error,
-                train_accuracy,
-                epoch_time_spent)
-            )
-            eta = epoch_time_spent * (epochs - epoch - 1)
-            minute, second = divmod(eta, 60)
-            hour, minute = divmod(minute, 60)
-            print ("    Estimated time left: %d:%02d:%02d (h:m:s)\n"
-                   % (hour, minute, second))
-
-            if plot:
-                plt.ion()
-                plt.figure(1)
-                display_record(record=self.record)
-        self.timestamp = get_timestamp()
+                if plot:
+                    plt.ion()
+                    plt.figure(1)
+                    display_record(record=self.record)
+        except KeyboardInterrupt:
+            print ("\n\n**********Training stopped prematurely.**********\n\n")
+        finally:
+            self.timestamp = get_timestamp()
 
     def conduct_test(self, test_x, test_y):
         """
@@ -480,10 +483,13 @@ class Network(object):
         if not os.path.exists('figures'):
             print ('Creating figures folder')
             os.makedirs('figures')
-        print ('\tSaving figure to file: figures/%s_ROC.png' % self.name)
-        plt.savefig('figures/%s_ROC.png' % self.name)
+        print ('\tSaving figure to file: figures/%s%s_ROC.png' % (
+            self.timestamp,
+            self.name)
+        )
+        plt.savefig('figures/%s%s_ROC.png' % (self.timestamp, self.name))
 
-    def save_model(self, save_path):
+    def save_model(self, save_path='models'):
         """
         Will save the model parameters to a npz file.
 
@@ -499,7 +505,7 @@ class Network(object):
         print ('Saving model as: %s' % network_name)
 
         with open(network_name, 'wb') as f:
-            dill.dump(self, f, protocol=dill.HIGHEST_PROTOCOL)
+            pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         self.save_metadata(file_path)
 
@@ -516,10 +522,10 @@ class Network(object):
         #     param_values = [f['arr_%d' % i] for i in range(len(f.files))]
         #     lasagne.layers.set_all_param_values(self.network, param_values)
         with open(load_path, 'rb') as f:
-            instance = dill.load(f)
+            instance = pickle.load(f)
         return instance
 
-    def save_record(self, save_path):
+    def save_record(self, save_path='records'):
         """
         Will save the training records to file to be loaded up later.
 
@@ -527,7 +533,6 @@ class Network(object):
             save_path: the location where you want to save the records
         """
         if self.record is not None:
-            import pickle
             if not os.path.exists(save_path):
                 print ('Path not found, creating %s' % save_path)
                 os.makedirs(save_path)
@@ -540,7 +545,7 @@ class Network(object):
         else:
             print ("Error: Nothing to save. Try training the model first.")
 
-    def save_metadata(self, file_path):
+    def save_metadata(self, file_path='models'):
         """
         Will save network configuration alongside weights.
 
