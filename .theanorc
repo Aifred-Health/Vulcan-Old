@@ -1,0 +1,14 @@
+[global]
+device=cuda0
+contexts=dev1->cuda1;dev2->cuda2;dev3->cuda3
+floatX = float32
+
+[lib]
+cnmem=1
+
+[nvcc]
+flags=-D_FORCE_INLINES
+
+[dnn]
+include_path=/usr/local/cuda/include
+library_path=/usr/local/cuda/lib64
