@@ -29,7 +29,7 @@ autoencoder = Network(
     num_classes=None
 )
 # Use to load model from disk
-# autoencoder = Network.load_model('models/20170701152010_autoencoder_mnist.network')
+# autoencoder = Network.load_model('models/20170701160524_autoencoder_mnist.network')
 
 # autoencoder.train(
 #     epochs=20,
@@ -53,7 +53,7 @@ dense_net = Network(
     num_classes=10
 )
 
-# dense_net = Network.load_model('models/20170701152102_3_dense.network')
+# dense_net = Network.load_model('models/20170701160526_3_dense.network')
 
 # dense_net.train(
 #     epochs=6,

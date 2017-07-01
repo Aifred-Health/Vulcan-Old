@@ -511,6 +511,7 @@ class Network(object):
             lasagne.layers.get_all_param_values(self.layers,
                                                 **{self.name: True})
         )
+        import pudb; pu.db
         pickle_dict['input_network'] = None
         return (pickle_dict, net_parameters)
 
