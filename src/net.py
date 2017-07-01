@@ -65,6 +65,10 @@ class Network(object):
         self.input_var = input_var
         self.y = y
         self.input_network = input_network
+        if self.input_network is not None:
+            self.input_var = \
+                lasagne.layers.get_all_layers(self.input_network)[0].input_var
+
         self.activation = activation
         self.network = self.create_dense_network(
             units=units,
@@ -503,11 +507,10 @@ class Network(object):
                 and not issubclass(v.__class__,
                                    theano.tensor.TensorVariable):
                 pickle_dict[k] = v
-            else:
-                print k, v.__class__
         net_parameters = np.array(
             lasagne.layers.get_all_param_values(self.layers)
         )
+        del pickle_dict['input_network']
         return (pickle_dict, net_parameters)
 
     def __setstate__(self, params):
