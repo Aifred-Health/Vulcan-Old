@@ -493,6 +493,25 @@ class Network(object):
         )
         plt.savefig('figures/{}{}_ROC.png'.format(self.timestamp, self.name))
 
+    def __getstate__(self):
+        """Pickle save config."""
+        # import pudb; pu.db
+        # pickle_dict = dict()
+        # for k, v in self.__dict__.items():
+        #     if not issubclass(v.__class__,
+        #                       theano.compile.function_module.Function):
+        #             pickle_dict[k] = v
+        net_parameters = np.array(
+            lasagne.layers.get_all_param_values(self.layers)
+        )
+        return (self.__dict__, net_parameters)
+
+    def __setstate__(self, params):
+        """Pickle load config."""
+        self.__dict__.update(params[0])
+        # self.createModel(**onlyMyArguments(self.createModel,self.__dict__))
+        lasagne.layers.set_all_param_values(self.layers, params[1])
+
     def save_model(self, save_path='models'):
         """
         Will save the model parameters to a npz file.
