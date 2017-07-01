@@ -55,7 +55,6 @@ def get_one_hot(in_matrix):
 
     Returns: a one-hot matrix representing the categorized matrix
     """
-    print('Getting one-hot encodings from class list...')
     if in_matrix.dtype.name == 'category':
         num_classes = len(in_matrix.cat.categories)
         custum_array = in_matrix.cat.codes
@@ -87,7 +86,6 @@ def get_class(in_matrix):
 
     Returns: Class array
     """
-    print('Getting class matrix from one-hot encodings...')
     return np.expand_dims(np.argmax(in_matrix, axis=1), axis=1)
 
 
