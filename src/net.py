@@ -508,7 +508,8 @@ class Network(object):
                                    theano.tensor.TensorVariable):
                 pickle_dict[k] = v
         net_parameters = np.array(
-            lasagne.layers.get_all_param_values(self.layers)
+            lasagne.layers.get_all_param_values(self.layers,
+                                                **{self.name: True})
         )
         pickle_dict['input_network'] = None
         return (pickle_dict, net_parameters)
