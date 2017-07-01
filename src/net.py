@@ -496,15 +496,15 @@ class Network(object):
     def __getstate__(self):
         """Pickle save config."""
         # import pudb; pu.db
-        # pickle_dict = dict()
-        # for k, v in self.__dict__.items():
-        #     if not issubclass(v.__class__,
-        #                       theano.compile.function_module.Function):
-        #             pickle_dict[k] = v
+        pickle_dict = dict()
+        for k, v in self.__dict__.items():
+            if not issubclass(v.__class__,
+                              theano.compile.function_module.Function):
+                    pickle_dict[k] = v
         net_parameters = np.array(
             lasagne.layers.get_all_param_values(self.layers)
         )
-        return (self.__dict__, net_parameters)
+        return (pickle_dict, net_parameters)
 
     def __setstate__(self, params):
         """Pickle load config."""
