@@ -18,18 +18,18 @@ train_labels = get_one_hot(train_labels)
 input_var = T.fmatrix('input')
 y = T.fmatrix('truth')
 
-# autoencoder = Network(
-#     name='autoencoder_mnist',
-#     dimensions=(None, int(train_images.shape[1])),
-#     input_var=input_var,
-#     y=y,
-#     units=[784, 392, 784],
-#     dropouts=[0.2, 0.2, 0.2],
-#     input_network=None,
-#     num_classes=None
-# )
+autoencoder = Network(
+    name='autoencoder_mnist',
+    dimensions=(None, int(train_images.shape[1])),
+    input_var=input_var,
+    y=y,
+    units=[784, 392, 784],
+    dropouts=[0.2, 0.2, 0.2],
+    input_network=None,
+    num_classes=None
+)
 # Use to load model from disk
-autoencoder = Network.load_model('models/20170701155904_autoencoder_mnist.network')
+# autoencoder = Network.load_model('models/20170701152010_autoencoder_mnist.network')
 
 # autoencoder.train(
 #     epochs=20,
@@ -40,8 +40,8 @@ autoencoder = Network.load_model('models/20170701155904_autoencoder_mnist.networ
 #     batch_ratio=0.5,
 #     plot=True
 # )
-#autoencoder.save_model()
-import pudb; pu.db
+autoencoder.save_model()
+
 dense_net = Network(
     name='3_dense',
     dimensions=(None, int(train_images.shape[1])),
@@ -53,7 +53,7 @@ dense_net = Network(
     num_classes=10
 )
 
-# dense_net = Network.load_model('models/20170701155906_3_dense.network')
+# dense_net = Network.load_model('models/20170701152102_3_dense.network')
 
 # dense_net.train(
 #     epochs=6,
