@@ -513,9 +513,8 @@ class Network(object):
     def __setstate__(self, params):
         """Pickle load config."""
         self.__dict__.update(params[0])
-        # self.createModel(**onlyMyArguments(self.createModel,self.__dict__))
-        self.input_var = T.fmatrix('input')
-        self.y = T.fmatrix('truth')
+        self.input_var = T.matrix('input')
+        self.y = T.matrix('truth')
         self.__init__(self.__dict__['name'],
                       self.__dict__['dimensions'],
                       self.__dict__['input_var'],
