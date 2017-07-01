@@ -496,10 +496,15 @@ class Network(object):
     def __getstate__(self):
         """Pickle save config."""
         pickle_dict = dict()
+        import pudb; pu.db
         for k, v in self.__dict__.items():
             if not issubclass(v.__class__,
-                              theano.compile.function_module.Function):
+                              theano.compile.function_module.Function) \
+                or not issubclass(v.__class__,
+                                  theano.tensor.TensorVariable):
                     pickle_dict[k] = v
+            else:
+                print k, v.__class__
         net_parameters = np.array(
             lasagne.layers.get_all_param_values(self.layers)
         )
@@ -507,8 +512,11 @@ class Network(object):
 
     def __setstate__(self, params):
         """Pickle load config."""
+        import pudb; pu.db
         self.__dict__.update(params[0])
         # self.createModel(**onlyMyArguments(self.createModel,self.__dict__))
+        self.input_var = T.fmatrix('input')
+        self.y = T.fmatrix('truth')
         lasagne.layers.set_all_param_values(self.layers, params[1])
 
     def save_model(self, save_path='models'):
