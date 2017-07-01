@@ -42,7 +42,7 @@ class Network(object):
 
     def __init__(self, name, dimensions, input_var, y, units, dropouts,
                  input_network=None, num_classes=None, activation='rectify',
-                 learning_rate=0.01):
+                 learning_rate=0.001):
         """
         Initialize network specified.
 
@@ -108,7 +108,8 @@ class Network(object):
             print ('\tInput Layer:')
             network = lasagne.layers.InputLayer(shape=self.dimensions,
                                                 input_var=self.input_var,
-                                                name="{}_input".format(self.name))
+                                                name="{}_input".format(
+                                                     self.name))
             print '\t\t', lasagne.layers.get_output_shape(network)
             self.layers.append(network)
         else:
@@ -181,16 +182,16 @@ class Network(object):
         self.layers.append(network)
         return network
 
-    def cross_entropy_loss(self, prediciton, y):
+    def cross_entropy_loss(self, prediction, y):
         """Generate a cross entropy loss function."""
         print ("Using categorical cross entropy loss")
-        return lasagne.objectives.categorical_crossentropy(prediciton,
+        return lasagne.objectives.categorical_crossentropy(prediction,
                                                            y).mean()
 
-    def mse_loss(self, prediciton, y):
+    def mse_loss(self, prediction, y):
         """Generate mean squared error loss function."""
         print ("Using Mean Squared error loss")
-        return lasagne.objectives.squared_error(prediciton, y).mean()
+        return lasagne.objectives.squared_error(prediction, y).mean()
 
     def create_trainer(self):
         """
