@@ -4,9 +4,6 @@ import theano.tensor as T
 
 from src.net import Network
 
-import shutil
-
-
 from src.utils import get_one_hot
 
 from src import mnist_loader
@@ -29,7 +26,7 @@ autoencoder = Network(
     num_classes=None
 )
 # Use to load model from disk
-#autoencoder = Network.load_model(load_path='models/20170630231108_autoencoder_mnist.network')
+# autoencoder = Network.load_model('models/20170701174206_autoencoder_mnist.network')
 
 autoencoder.train(
     epochs=20,
@@ -45,13 +42,16 @@ autoencoder.save_model()
 dense_net = Network(
     name='3_dense',
     dimensions=(None, int(train_images.shape[1])),
-    input_var=autoencoder.input_var,
-    y=autoencoder.y,
+    input_var=input_var,
+    y=y,
     units=[4096, 1024, 784],
     dropouts=[0.2, 0.2, 0.2],
-    input_network=autoencoder.layers[4],
+    input_network={'network': autoencoder, 'layer': 4},
     num_classes=10
 )
+
+# dense_net = Network.load_model('models/20170701193601_3_dense.network')
+
 
 dense_net.train(
     epochs=6,
@@ -63,4 +63,6 @@ dense_net.train(
     plot=True
 )
 
-dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
+dense_net.save_model()
+
+# dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])

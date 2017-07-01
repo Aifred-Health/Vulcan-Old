@@ -65,10 +65,16 @@ class Network(object):
         self.input_var = input_var
         self.y = y
         self.input_network = input_network
+        if self.input_network is not None:
+            self.input_var = lasagne.layers.get_all_layers(
+                self.input_network['network']
+            )[0].input_var
+
+        self.activation = activation
         self.network = self.create_dense_network(
             units=units,
             dropouts=dropouts,
-            nonlinearity=selu if activation == 'selu' else rectify
+            nonlinearity=selu if self.activation == 'selu' else rectify
         )
         self.num_classes = num_classes
         if num_classes is not None and num_classes != 0:
@@ -113,8 +119,13 @@ class Network(object):
             print '\t\t', lasagne.layers.get_output_shape(network)
             self.layers.append(network)
         else:
-            network = self.input_network
-            print ('Appending networks together')
+            network = self.input_network['network']. \
+                layers[self.input_network['layer']]
+
+            print ('Appending layer {} from {} to {}'.format(
+                self.input_network['layer'],
+                self.input_network['network'].name,
+                self.name))
 
         print ('\tHidden Layer:')
         for i, (num_units, prob_dropout) in enumerate(zip(units, dropouts)):
@@ -495,22 +506,51 @@ class Network(object):
 
     def __getstate__(self):
         """Pickle save config."""
-        # import pudb; pu.db
-        # pickle_dict = dict()
-        # for k, v in self.__dict__.items():
-        #     if not issubclass(v.__class__,
-        #                       theano.compile.function_module.Function):
-        #             pickle_dict[k] = v
+        pickle_dict = dict()
+        for k, v in self.__dict__.items():
+            if not issubclass(v.__class__,
+                              theano.compile.function_module.Function) \
+                and not issubclass(v.__class__,
+                                   theano.tensor.TensorVariable):
+                pickle_dict[k] = v
         net_parameters = np.array(
-            lasagne.layers.get_all_param_values(self.layers)
+            lasagne.layers.get_all_param_values(self.layers,
+                                                **{self.name: True})
         )
-        return (self.__dict__, net_parameters)
+        if self.input_network is None:
+            return (pickle_dict, net_parameters, None, None)
+        else:
+            pickle_dict['input_network'] = None
+            return (pickle_dict,
+                    net_parameters,
+                    self.input_network['network'].save_name,
+                    self.input_network['layer'])
 
     def __setstate__(self, params):
         """Pickle load config."""
         self.__dict__.update(params[0])
-        # self.createModel(**onlyMyArguments(self.createModel,self.__dict__))
-        lasagne.layers.set_all_param_values(self.layers, params[1])
+        if params[2] is not None and params[3] is not None:
+            input_network = Network.load_model(params[2])
+            self.input_var = input_network.input_var
+            self.input_network = {'network': input_network,
+                                  'layer': params[3]}
+        else:
+            self.input_var = T.matrix('input')
+
+        self.y = T.matrix('truth')
+        self.__init__(self.__dict__['name'],
+                      self.__dict__['dimensions'],
+                      self.__dict__['input_var'],
+                      self.__dict__['y'],
+                      self.__dict__['units'],
+                      self.__dict__['dropouts'],
+                      self.__dict__['input_network'],
+                      self.__dict__['num_classes'],
+                      self.__dict__['activation'],
+                      self.__dict__['learning_rate'])
+        lasagne.layers.set_all_param_values(self.layers,
+                                            params[1],
+                                            **{self.name: True})
 
     def save_model(self, save_path='models'):
         """
@@ -524,10 +564,10 @@ class Network(object):
             os.makedirs(save_path)
         file_path = os.path.join(save_path, "{}{}".format(self.timestamp,
                                                           self.name))
-        network_name = '{}.network'.format(file_path)
-        print ('Saving model as: {}'.format(network_name))
+        self.save_name = '{}.network'.format(file_path)
+        print ('Saving model as: {}'.format(self.save_name))
 
-        with open(network_name, 'wb') as f:
+        with open(self.save_name, 'wb') as f:
             pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         self.save_metadata(file_path)
@@ -579,15 +619,17 @@ class Network(object):
                 "y": "{}".format(self.y.type),
                 "units": self.units,
                 "dropouts": self.dropouts,
-                "num_classes": self.num_classes
+                "num_classes": self.num_classes,
+                "input_network": {
+                    'network': self.input_network['network'].save_name,
+                    'layer': self.input_network['layer']
+                }
             }
         }
         json_file = "{}_metadata.json".format(file_path)
         print ('Saving metadata to {}'.format(json_file))
         with open(json_file, 'w') as file:
             json.dump(config, file)
-
-    # def save_object():
 
 if __name__ == "__main__":
     pass
