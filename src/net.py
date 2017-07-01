@@ -517,10 +517,6 @@ class Network(object):
             lasagne.layers.get_all_param_values(self.layers,
                                                 **{self.name: True})
         )
-        # if pickle_dict['input_network'] is not None:
-        #     pickle_dict['dimensions'] = lasagne.layers.get_output_shape(
-        #         self.input_network['network']
-        #     )
         if self.input_network is None:
             return (pickle_dict, net_parameters, None, None)
         else:

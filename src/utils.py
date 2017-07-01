@@ -12,6 +12,26 @@ from datetime import datetime
 from sklearn.metrics import confusion_matrix
 
 
+def get_all_embedded_networks(network):
+    """
+    Return all embedded networks of type Network.
+
+    Args:
+        network: tallest point, hierarchically, of which to begin
+            gathering the embedded networks
+
+    Returns: a list of Networks in order of their stack
+        example: if we have a model a[b[c]], it will return
+        [a,b,c]. the specific layer that was attached can be extracted
+        from the individual network itself.
+    """
+    if network.input_network is None:
+        return [network]
+    else:
+        return [network] + \
+            get_all_embedded_networks(network.input_network['network'])
+
+
 def round_list(raw_list, decimals=4):
     """
     Return the same list with each item rounded off.
