@@ -619,15 +619,17 @@ class Network(object):
                 "y": "{}".format(self.y.type),
                 "units": self.units,
                 "dropouts": self.dropouts,
-                "num_classes": self.num_classes
+                "num_classes": self.num_classes,
+                "input_network": {
+                    'network': self.input_network['network'].save_name,
+                    'layer': self.input_network['layer']
+                }
             }
         }
         json_file = "{}_metadata.json".format(file_path)
         print ('Saving metadata to {}'.format(json_file))
         with open(json_file, 'w') as file:
             json.dump(config, file)
-
-    # def save_object():
 
 if __name__ == "__main__":
     pass

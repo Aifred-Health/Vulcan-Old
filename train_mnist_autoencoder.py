@@ -4,9 +4,6 @@ import theano.tensor as T
 
 from src.net import Network
 
-import shutil
-
-
 from src.utils import get_one_hot
 
 from src import mnist_loader
@@ -53,19 +50,19 @@ dense_net = Network(
     num_classes=10
 )
 
-# dense_net = Network.load_model('models/20170701174254_3_dense.network')
+# dense_net = Network.load_model('models/20170701193601_3_dense.network')
 
 
-dense_net.input_network['network'].train(
+dense_net.train(
     epochs=6,
     train_x=train_images[:50000],
-    train_y=train_images[:50000],
+    train_y=train_labels[:50000],
     val_x=train_images[50000:60000],
-    val_y=train_images[50000:60000],
+    val_y=train_labels[50000:60000],
     batch_ratio=0.5,
     plot=True
 )
 
-# dense_net.save_model()
+dense_net.save_model()
 
 # dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
