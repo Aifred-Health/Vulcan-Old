@@ -11,26 +11,26 @@ from src import mnist_loader
 (train_images, train_labels, test_images, test_labels) = mnist_loader.load_mnist()
 
 
-train_labels = get_one_hot(train_labels)
+# train_labels = get_one_hot(train_labels)
 
-input_var = T.fmatrix('input')
-y = T.fmatrix('truth')
+# input_var = T.fmatrix('input')
+# y = T.fmatrix('truth')
 
-dense_net = Network(
-    name='3_dense_test',
-    dimensions=(None, int(train_images.shape[1])),
-    input_var=input_var,
-    y=y,
-    units=[1024, 1024, 784],
-    dropouts=[0.2, 0.2, 0.2],
-    input_network=None,
-    num_classes=10,
-    activation='rectify'
-)
+# dense_net = Network(
+#     name='3_dense_test',
+#     dimensions=(None, int(train_images.shape[1])),
+#     input_var=input_var,
+#     y=y,
+#     units=[1024, 1024, 784],
+#     dropouts=[0.2, 0.2, 0.2],
+#     input_network=None,
+#     num_classes=10,
+#     activation='rectify'
+# )
 
-dense_net.save_model()
+# dense_net.save_model()
 # Use to load model from disk
-# dense_net = Network.load_model('models/20170701125519_3_dense_test.network')
+dense_net = Network.load_model('models/20170701143527_3_dense_test.network')
 # dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
 
 dense_net.train(

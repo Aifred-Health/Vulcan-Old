@@ -65,10 +65,11 @@ class Network(object):
         self.input_var = input_var
         self.y = y
         self.input_network = input_network
+        self.activation = activation
         self.network = self.create_dense_network(
             units=units,
             dropouts=dropouts,
-            nonlinearity=selu if activation == 'selu' else rectify
+            nonlinearity=selu if self.activation == 'selu' else rectify
         )
         self.num_classes = num_classes
         if num_classes is not None and num_classes != 0:
@@ -511,11 +512,20 @@ class Network(object):
 
     def __setstate__(self, params):
         """Pickle load config."""
-        import pudb; pu.db
         self.__dict__.update(params[0])
         # self.createModel(**onlyMyArguments(self.createModel,self.__dict__))
         self.input_var = T.fmatrix('input')
         self.y = T.fmatrix('truth')
+        self.__init__(self.__dict__['name'],
+                      self.__dict__['dimensions'],
+                      self.__dict__['input_var'],
+                      self.__dict__['y'],
+                      self.__dict__['units'],
+                      self.__dict__['dropouts'],
+                      self.__dict__['input_network'],
+                      self.__dict__['num_classes'],
+                      self.__dict__['activation'],
+                      self.__dict__['learning_rate'])
         lasagne.layers.set_all_param_values(self.layers, params[1])
 
     def save_model(self, save_path='models'):
