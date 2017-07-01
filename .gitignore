@@ -13,3 +13,4 @@ records
 *.npy
 *.network
 *.json
+*.zip

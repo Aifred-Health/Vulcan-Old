@@ -32,7 +32,7 @@ from scipy import integrate
 
 import json
 
-import pickle
+import cPickle as pickle
 
 sys.setrecursionlimit(5000)
 
@@ -231,6 +231,7 @@ class Network(object):
             beta2=0.999,
             epsilon=1e-08
         )
+
         # omitted (, allow_input_downcast=True)
         return theano.function([i for i in [self.input_var, self.y] if i],
                                updates=updates)
@@ -513,7 +514,7 @@ class Network(object):
         self.save_metadata(file_path)
 
     @classmethod
-    def load_model(self, load_path):
+    def load_model(cls, load_path):
         """
         Will load the model paramters from npz file.
 

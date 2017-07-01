@@ -28,12 +28,11 @@ autoencoder = Network(
     input_network=None,
     num_classes=None
 )
-
 # Use to load model from disk
-# autoencoder.load_model(load_path='models/autoencoder_mnist.npz')
+#autoencoder = Network.load_model(load_path='models/20170630231108_autoencoder_mnist.network')
 
 autoencoder.train(
-    epochs=10,
+    epochs=20,
     train_x=train_images[:50000],
     train_y=train_images[:50000],
     val_x=train_images[50000:60000],
@@ -41,13 +40,13 @@ autoencoder.train(
     batch_ratio=0.5,
     plot=True
 )
-autoencoder.save_model(save_path='models')
+autoencoder.save_model()
 
 dense_net = Network(
     name='3_dense',
     dimensions=(None, int(train_images.shape[1])),
-    input_var=input_var,
-    y=y,
+    input_var=autoencoder.input_var,
+    y=autoencoder.y,
     units=[4096, 1024, 784],
     dropouts=[0.2, 0.2, 0.2],
     input_network=autoencoder.layers[4],

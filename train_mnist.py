@@ -15,20 +15,19 @@ train_labels = get_one_hot(train_labels)
 input_var = T.fmatrix('input')
 y = T.fmatrix('truth')
 
-# dense_net = Network(
-#     name='3_dense_test',
-#     dimensions=(None, int(train_images.shape[1])),
-#     input_var=input_var,
-#     y=y,
-#     units=[1024, 1024, 784],
-#     dropouts=[0.2, 0.2, 0.2],
-#     input_network=None,
-#     num_classes=10,
-#     activation='rectify'
-# )
+dense_net = Network(
+    name='3_dense_test',
+    dimensions=(None, int(train_images.shape[1])),
+    input_var=input_var,
+    y=y,
+    units=[1024, 1024, 784],
+    dropouts=[0.2, 0.2, 0.2],
+    input_network=None,
+    num_classes=10,
+    activation='rectify'
+)
 # Use to load model from disk
-dense_net = Network.load_model('models/20170629181715_3_dense_test.network')
-
+#dense_net = Network.load_model('models/20170630233456_3_dense_test.network')
 # dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
 #
 dense_net.train(
@@ -41,7 +40,7 @@ dense_net.train(
     plot=True
 )
 
-# dense_net.save_model()
-# dense_net.save_record()
+dense_net.save_model()
+dense_net.save_record()
 
 # dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
