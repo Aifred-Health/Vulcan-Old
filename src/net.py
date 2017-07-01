@@ -495,7 +495,7 @@ class Network(object):
 
     def __getstate__(self):
         """Pickle save config."""
-        # import pudb; pu.db
+        import pudb; pu.db
         pickle_dict = dict()
         for k, v in self.__dict__.items():
             if not issubclass(v.__class__,
