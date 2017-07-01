@@ -66,8 +66,9 @@ class Network(object):
         self.y = y
         self.input_network = input_network
         if self.input_network is not None:
-            self.input_var = \
-                lasagne.layers.get_all_layers(self.input_network)[0].input_var
+            self.input_var = lasagne.layers.get_all_layers(
+                self.input_network['network']
+            )[0].input_var
 
         self.activation = activation
         self.network = self.create_dense_network(
@@ -118,8 +119,13 @@ class Network(object):
             print '\t\t', lasagne.layers.get_output_shape(network)
             self.layers.append(network)
         else:
-            network = self.input_network
-            print ('Appending networks together')
+            network = self.input_network['network']. \
+                layers[self.input_network['layer']]
+
+            print ('Appending layer {} from {} to {}'.format(
+                self.input_network['layer'],
+                self.input_network['network'].name,
+                self.name))
 
         print ('\tHidden Layer:')
         for i, (num_units, prob_dropout) in enumerate(zip(units, dropouts)):
@@ -511,17 +517,30 @@ class Network(object):
             lasagne.layers.get_all_param_values(self.layers,
                                                 **{self.name: True})
         )
-        if pickle_dict['input_network'] is not None:
-            pickle_dict['dimensions'] = lasagne.layers.get_output_shape(
-                self.input_network
-            )
+        # if pickle_dict['input_network'] is not None:
+        #     pickle_dict['dimensions'] = lasagne.layers.get_output_shape(
+        #         self.input_network['network']
+        #     )
+        if self.input_network is None:
+            return (pickle_dict, net_parameters, None, None)
+        else:
             pickle_dict['input_network'] = None
-        return (pickle_dict, net_parameters)
+            return (pickle_dict,
+                    net_parameters,
+                    self.input_network['network'].save_name,
+                    self.input_network['layer'])
 
     def __setstate__(self, params):
         """Pickle load config."""
         self.__dict__.update(params[0])
-        self.input_var = T.matrix('input')
+        if params[2] is not None and params[3] is not None:
+            input_network = Network.load_model(params[2])
+            self.input_var = input_network.input_var
+            self.input_network = {'network': input_network,
+                                  'layer': params[3]}
+        else:
+            self.input_var = T.matrix('input')
+
         self.y = T.matrix('truth')
         self.__init__(self.__dict__['name'],
                       self.__dict__['dimensions'],
@@ -533,7 +552,9 @@ class Network(object):
                       self.__dict__['num_classes'],
                       self.__dict__['activation'],
                       self.__dict__['learning_rate'])
-        lasagne.layers.set_all_param_values(self.layers, params[1])
+        lasagne.layers.set_all_param_values(self.layers,
+                                            params[1],
+                                            **{self.name: True})
 
     def save_model(self, save_path='models'):
         """
@@ -547,10 +568,10 @@ class Network(object):
             os.makedirs(save_path)
         file_path = os.path.join(save_path, "{}{}".format(self.timestamp,
                                                           self.name))
-        network_name = '{}.network'.format(file_path)
-        print ('Saving model as: {}'.format(network_name))
+        self.save_name = '{}.network'.format(file_path)
+        print ('Saving model as: {}'.format(self.save_name))
 
-        with open(network_name, 'wb') as f:
+        with open(self.save_name, 'wb') as f:
             pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         self.save_metadata(file_path)
