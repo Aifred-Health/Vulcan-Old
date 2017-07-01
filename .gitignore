@@ -1,7 +1,10 @@
 data
 figures
 models
+records
 *.png
+*.jpg
+*.pdf
 *.csv
 *.npz
 *.pickle
