@@ -510,7 +510,7 @@ class Network(object):
         net_parameters = np.array(
             lasagne.layers.get_all_param_values(self.layers)
         )
-        del pickle_dict['input_network']
+        pickle_dict['input_network'] = None
         return (pickle_dict, net_parameters)
 
     def __setstate__(self, params):
