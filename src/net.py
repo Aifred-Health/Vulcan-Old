@@ -496,13 +496,12 @@ class Network(object):
     def __getstate__(self):
         """Pickle save config."""
         pickle_dict = dict()
-        import pudb; pu.db
         for k, v in self.__dict__.items():
             if not issubclass(v.__class__,
                               theano.compile.function_module.Function) \
-                or not issubclass(v.__class__,
-                                  theano.tensor.TensorVariable):
-                    pickle_dict[k] = v
+                and not issubclass(v.__class__,
+                                   theano.tensor.TensorVariable):
+                pickle_dict[k] = v
             else:
                 print k, v.__class__
         net_parameters = np.array(
