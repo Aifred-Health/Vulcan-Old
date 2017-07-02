@@ -3,6 +3,8 @@ Clinical Decision Aid for Increased Treatment Efficacy
 
 Mental health is an integral part of our well-being and how we function within society. aifred aims to bring personalized treatments at scale by combining best practices from psychiatry and deep learning.
 
+For a more detailed runthrough of using the tools, please look at the [wiki](https://github.com/rfratila/aifred/wiki)
+
 ## Dependencies
  Simply run:
  ```

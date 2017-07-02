@@ -89,7 +89,7 @@ class Network(object):
 
         self.output = theano.function(
             [i for i in [self.input_var] if i],
-            lasagne.layers.get_output(self.network))
+            lasagne.layers.get_output(self.network, deterministic=True))
         self.record = None
         self.timestamp = get_timestamp()
 
