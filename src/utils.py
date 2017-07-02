@@ -21,8 +21,8 @@ def get_all_embedded_networks(network):
             gathering the embedded networks
 
     Returns: a list of Networks in order of their stack
-        example: if we have a model a[b[c]], it will return
-        [a,b,c]. the specific layer that was attached can be extracted
+        example: if we have a model a->b->c, it will return
+        [c,b,a]. the specific layer that was attached can be extracted
         from the individual network itself.
     """
     if network.input_network is None:
