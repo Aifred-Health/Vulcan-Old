@@ -621,11 +621,18 @@ class Network(object):
                 "dropouts": self.dropouts,
                 "num_classes": self.num_classes,
                 "input_network": {
-                    'network': self.input_network['network'].save_name,
-                    'layer': self.input_network['layer']
+                    'network': None,
+                    'layer': None
                 }
             }
         }
+
+        if self.input_network:
+            config["{}".format(file_path)]["input_network"]['network'] = \
+                self.input_network['network'].save_name
+            config["{}".format(file_path)]["input_network"]['layer'] = \
+                self.input_network['layer']
+
         json_file = "{}_metadata.json".format(file_path)
         print ('Saving metadata to {}'.format(json_file))
         with open(json_file, 'w') as file:
