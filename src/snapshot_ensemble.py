@@ -14,6 +14,8 @@ from utils import get_timestamp
 
 from net import Network
 
+import json
+
 
 class Snapshot(object):
     """Uses Network to build model snapshots."""
@@ -76,18 +78,27 @@ class Snapshot(object):
             self.template_network.learning_rate = self.init_learning_rate
         self.timestamp = get_timestamp()
 
-    def get_output(self, input_data, m):
+    def get_output(self, input_data, m=0):
         """
         Get output of ensemble of the last m networks where m <= n_snapshots.
 
         Args:
             input_data: Numpy matrix to make the predictions on
             m: the m most recent models from the ensemble to give outputs
+               Default to get output from all models.
         """
+        if m < 0 or m > len(self.networks):
+            print('Select the m most recent models to get output from. '
+                  'Setting m to 0 (default to all models)\n')
+            m = 0
+
         prediction_collection = []
         for net in self.networks[-m:]:
             prediction_collection += [net.forward_pass(input_data=input_data,
-                                      convert_to_class=True)]
+                                      convert_to_class=False)]
+        prediction_collection = np.array(prediction_collection)
+
+        return np.mean(prediction_collection, axis=0, dtype='float32')
 
     def save_ensemble(self, save_path='models'):
         """Save all ensembled networks in a folder with ensemble name."""
@@ -100,20 +111,55 @@ class Snapshot(object):
         for model in self.networks:
             model.save_model(save_path=new_save_path)
 
+        self.save_ensemble_metadata(new_save_path)
+
     @classmethod
     def load_ensemble(cls, ensemble_path):
         """Load up ensembled models with a folder location."""
+        json_file = "{}_metadata.json".format(
+            os.path.join(ensemble_path, os.path.basename(ensemble_path))
+        )
+        with open(json_file, 'r') as file:
+            config = json.load(file)
+
         networks = []
         for model_file in sorted(os.listdir(ensemble_path)):
             if model_file.endswith('.network'):
                 file = os.path.join(ensemble_path, model_file)
                 networks += [Network.load_model(file)]
+
         snap = Snapshot(
             name='snap1',
             template_network=None,
-            n_snapshots=None,
-            n_epochs=None,
-            init_learning_rate=None
+            n_snapshots=config[ensemble_path]['n_snapshots'],
+            n_epochs=config[ensemble_path]['n_epochs'],
+            init_learning_rate=config[ensemble_path]['init_learning_rate']
         )
         snap.networks = networks
         return snap
+
+    def save_ensemble_metadata(self, file_path):
+        """
+        Will save ensemble configuration.
+
+        Args:
+            file_path: the npz file path without the npz
+
+            self, name, template_network, n_snapshots, n_epochs,
+                 init_learning_rate):
+        """
+        config = {
+            "{}".format(file_path): {
+                "n_snapshots": self.M,
+                "n_epochs": self.T,
+                "init_learning_rate": self.init_learning_rate,
+                "networks": [{n.name: n.save_name} for n in self.networks]
+            }
+        }
+
+        json_file = "{}_metadata.json".format(
+            os.path.join(file_path, os.path.basename(file_path))
+        )
+        print ('Saving metadata to {}'.format(json_file))
+        with open(json_file, 'w') as file:
+            json.dump(config, file)
