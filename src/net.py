@@ -379,7 +379,7 @@ class Network(object):
         finally:
             self.timestamp = get_timestamp()
 
-    def conduct_test(self, test_x, test_y):
+    def conduct_test(self, test_x, test_y, figure_path='figures'):
         """
         Will conduct the test suite to determine model strength.
 
@@ -396,113 +396,126 @@ class Network(object):
 
         raw_prediction = self.forward_pass(input_data=test_x,
                                            convert_to_class=False)
-        threshold = 0.0
-        x = y = np.array([])
+        # threshold = 0.0
+        # x = y = np.array([])
 
-        while (threshold < 1.0):
-            prediction = np.where(raw_prediction > threshold, 1.0, 0.0)
-            prediction = get_class(prediction)
+        # while (threshold < 1.0):
+        # prediction = np.where(raw_prediction > threshold, 1.0, 0.0)
+        # prediction = get_class(prediction)
 
-            confusion_matrix = get_confusion_matrix(prediction=prediction,
-                                                    truth=test_y)
+        confusion_matrix = get_confusion_matrix(
+            prediction=get_class(raw_prediction),
+            truth=test_y
+        )
 
-            tp = np.diagonal(confusion_matrix).astype('float32')
-            tn = (np.array([np.sum(confusion_matrix)] *
-                           confusion_matrix.shape[0]) -
-                  confusion_matrix.sum(axis=0) -
-                  confusion_matrix.sum(axis=1) +
-                  tp).astype('float32')
-            # sum each column and remove diagonal
-            fp = (confusion_matrix.sum(axis=0) - tp).astype('float32')
-            # sum each row and remove diagonal
-            fn = (confusion_matrix.sum(axis=1) - tp).astype('float32')
+        tp = np.diagonal(confusion_matrix).astype('float32')
+        tn = (np.array([np.sum(confusion_matrix)] * confusion_matrix.shape[0]) - confusion_matrix.sum(axis=0) - confusion_matrix.sum(axis=1) + tp).astype('float32')
+        # sum each column and remove diagonal
+        fp = (confusion_matrix.sum(axis=0) - tp).astype('float32')
+        # sum each row and remove diagonal
+        fn = (confusion_matrix.sum(axis=1) - tp).astype('float32')
 
-            # sensitivity = np.nan_to_num(tp / (tp + fn))
-            # specificity = np.nan_to_num(tn / (tn + fp))
+        sens = np.nan_to_num(tp / (tp + fn))  # recall
+        spec = np.nan_to_num(tn / (tn + fp))
+        # y = np.append(y, sens[4])
+        # x = np.append(x, 1 - spec[4])
+        # import pudb;
+        # pu.db
+        sens_macro = np.nan_to_num(sum(tp) / (sum(tp) + sum(fn)))
+        spec_macro = np.nan_to_num(sum(tn) / (sum(tn) + sum(fp)))
+        dice = 2 * tp / (2 * tp + fp + fn)
+        ppv = np.nan_to_num(tp / (tp + fp))  # precision
+        ppv_macro = np.nan_to_num(sum(tp) / (sum(tp) + sum(fp)))
+        npv = np.nan_to_num(tn / (tn + fn))
+        npv_macro = np.nan_to_num(sum(tn) / (sum(tn) + sum(fn)))
+        accuracy = np.sum(tp) / np.sum(confusion_matrix)
+        f1 = np.nan_to_num(2 * (ppv * sens) / (ppv + sens))
+        f1_macro = np.average(np.nan_to_num(2 * sens * ppv / (sens + ppv)))
 
-            if abs(threshold - 0.5) < 1e-08:
-                sens = np.nan_to_num(tp / (tp + fn))  # recall
-                sens_macro = np.nan_to_num(sum(tp) / (sum(tp) + sum(fn)))
-                spec = np.nan_to_num(tn / (tn + fp))
-                spec_macro = np.nan_to_num(sum(tn) / (sum(tn) + sum(fp)))
-                dice = 2 * tp / (2 * tp + fp + fn)
-                ppv = np.nan_to_num(tp / (tp + fp))  # precision
-                ppv_macro = np.nan_to_num(sum(tp) / (sum(tp) + sum(fp)))
-                npv = np.nan_to_num(tn / (tn + fn))
-                npv_macro = np.nan_to_num(sum(tn) / (sum(tn) + sum(fn)))
-                accuracy = np.sum(tp) / np.sum(confusion_matrix)
-                f1 = np.nan_to_num(2 * (ppv * sens) / (ppv + sens))
+        print ('{} test\'s results'.format(self.name))
 
-                f1_macro = np.average(np.nan_to_num(2 * sens * ppv /
-                                                    (sens + ppv)))
+        print ('TP:'),
+        print (tp)
+        print ('FP:'),
+        print (fp)
+        print ('TN:'),
+        print (tn)
+        print ('FN:'),
+        print (fn)
 
-                print ('{} test\'s results'.format(self.name))
+        print ('\nAccuracy: {}'.format(accuracy))
 
-                print ('TP:'),
-                print (tp)
-                print ('FP:'),
-                print (fp)
-                print ('TN:'),
-                print (tn)
-                print ('FN:'),
-                print (fn)
+        print ('Sensitivity:'),
+        print(round_list(sens, decimals=3))
+        print ('\tMacro Sensitivity: {:.4f}'.format(sens_macro))
 
-                print ('\nAccuracy: {}'.format(accuracy))
+        print ('Specificity:'),
+        print(round_list(spec, decimals=3))
+        print ('\tMacro Specificity: {:.4f}'.format(spec_macro))
 
-                print ('Sensitivity:'),
-                print(round_list(sens, decimals=3))
-                print ('\tMacro Sensitivity: {:.4f}'.format(sens_macro))
+        print ('DICE:'),
+        print(round_list(dice, decimals=3))
+        print ('\tAvg. DICE: {:.4f}'.format(np.average(dice)))
 
-                print ('Specificity:'),
-                print(round_list(spec, decimals=3))
-                print ('\tMacro Specificity: {:.4f}'.format(spec_macro))
-
-                print ('DICE:'),
-                print(round_list(dice, decimals=3))
-                print ('\tAvg. DICE: {:.4f}'.format(np.average(dice)))
-
-                print ('Positive Predictive Value:'),
-                print(round_list(ppv, decimals=3))
-                print ('\tMacro Positive Predictive Value: {:.4f}'.format
+        print ('Positive Predictive Value:'),
+        print(round_list(ppv, decimals=3))
+        print ('\tMacro Positive Predictive Value: {:.4f}'.format
                        (ppv_macro))
 
-                print ('Negative Predictive Value:'),
-                print(round_list(npv, decimals=3))
-                print ('\tMacro Negative Predictive Value: {:.4f}'.format
+        print ('Negative Predictive Value:'),
+        print(round_list(npv, decimals=3))
+        print ('\tMacro Negative Predictive Value: {:.4f}'.format
                        (npv_macro))
 
-                print ('f1-score:'),
-                print(round_list(f1, decimals=3))
-                print ('\tMacro f1-score: {:.4f}'.format(f1_macro))
+        print ('f1-score:'),
+        print(round_list(f1, decimals=3))
+        print ('\tMacro f1-score: {:.4f}'.format(f1_macro))
 
-            threshold += 0.01
-
-        x = 1.0 - spec
-        y = sens
-        auc = integrate.trapz(y, spec)  # NEEDS REPAIR
-
-        print ('AUC: {:.4f}'.format(auc))
-        print ('\tGenerating ROC ...')
-
-        plt.figure(2)
-        plt.ion()
-        plt.plot(x, y, label=("AUC: {:.4f}".format(auc)))
-        plt.title("ROC Curve for {}".format(self.name))
-        plt.xlabel('1 - specificity')
-        plt.ylabel('sensitivity')
-        plt.legend(loc='lower right')
-        plt.ylim(0.0, 1.0)
-        plt.xlim(0.0, 1.0)
-        plt.show()
-
-        if not os.path.exists('figures'):
+        if not os.path.exists(figure_path):
             print ('Creating figures folder')
-            os.makedirs('figures')
-        print ('\tSaving figure to file: figures/{}{}_ROC.png'.format(
+            os.makedirs(figure_path)
+        print ('\tSaving figure to file: {}/{}{}_ROC.png'.format(
+            figure_path,
             self.timestamp,
             self.name)
         )
-        plt.savefig('figures/{}{}_ROC.png'.format(self.timestamp, self.name))
+
+        if not os.path.exists('{}/{}{}'.format(figure_path, self.timestamp,
+                                               self.name)):
+            print ('Creating {}{} folder'.format(self.timestamp, self.name, figure_path))
+            os.makedirs('{}/{}{}'.format(
+                figure_path,
+                self.timestamp,
+                self.name)
+            )
+        print ('\tSaving ROC figures to folder: {}{}'.format(
+            self.timestamp,
+            self.name)
+        )
+
+        from sklearn import metrics
+        for i in range(self.num_classes):
+            # import pudb;
+            # pu.db
+            fpr, tpr, thresholds = metrics.roc_curve(test_y, raw_prediction[:, i], pos_label=i)
+
+            auc = integrate.trapz(tpr, fpr)
+            print ('AUC: {:.4f}'.format(auc))
+            print ('\tGenerating ROC_{} ...'.format(i))
+
+            plt.figure(2)
+            plt.ion()
+            plt.plot(fpr, tpr, label=("AUC: {:.4f}".format(auc)))
+            plt.title("ROC Curve for {}".format(self.name))
+            plt.xlabel('1 - specificity')
+            plt.ylabel('sensitivity')
+            plt.legend(loc='lower right')
+            plt.ylim(0.0, 1.0)
+            plt.xlim(0.0, 1.0)
+            plt.show()
+
+            plt.savefig('{}/{}{}/{}.png'.format(figure_path, self.timestamp, self.name, i))
+            plt.clf()
 
     def __getstate__(self):
         """Pickle save config."""
