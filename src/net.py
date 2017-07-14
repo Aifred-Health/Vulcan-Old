@@ -34,6 +34,8 @@ import json
 
 import cPickle as pickle
 
+from sklearn import metrics
+
 sys.setrecursionlimit(5000)
 
 
@@ -396,12 +398,6 @@ class Network(object):
 
         raw_prediction = self.forward_pass(input_data=test_x,
                                            convert_to_class=False)
-        # threshold = 0.0
-        # x = y = np.array([])
-
-        # while (threshold < 1.0):
-        # prediction = np.where(raw_prediction > threshold, 1.0, 0.0)
-        # prediction = get_class(prediction)
 
         confusion_matrix = get_confusion_matrix(
             prediction=get_class(raw_prediction),
@@ -409,7 +405,10 @@ class Network(object):
         )
 
         tp = np.diagonal(confusion_matrix).astype('float32')
-        tn = (np.array([np.sum(confusion_matrix)] * confusion_matrix.shape[0]) - confusion_matrix.sum(axis=0) - confusion_matrix.sum(axis=1) + tp).astype('float32')
+        tn = (np.array([np.sum(confusion_matrix)] *
+                       confusion_matrix.shape[0]) -
+              confusion_matrix.sum(axis=0) -
+              confusion_matrix.sum(axis=1) + tp).astype('float32')
         # sum each column and remove diagonal
         fp = (confusion_matrix.sum(axis=0) - tp).astype('float32')
         # sum each row and remove diagonal
@@ -417,10 +416,6 @@ class Network(object):
 
         sens = np.nan_to_num(tp / (tp + fn))  # recall
         spec = np.nan_to_num(tn / (tn + fp))
-        # y = np.append(y, sens[4])
-        # x = np.append(x, 1 - spec[4])
-        # import pudb;
-        # pu.db
         sens_macro = np.nan_to_num(sum(tp) / (sum(tp) + sum(fn)))
         spec_macro = np.nan_to_num(sum(tn) / (sum(tn) + sum(fp)))
         dice = 2 * tp / (2 * tp + fp + fn)
@@ -460,12 +455,12 @@ class Network(object):
         print ('Positive Predictive Value:'),
         print(round_list(ppv, decimals=3))
         print ('\tMacro Positive Predictive Value: {:.4f}'.format
-                       (ppv_macro))
+               (ppv_macro))
 
         print ('Negative Predictive Value:'),
         print(round_list(npv, decimals=3))
         print ('\tMacro Negative Predictive Value: {:.4f}'.format
-                       (npv_macro))
+               (npv_macro))
 
         print ('f1-score:'),
         print(round_list(f1, decimals=3))
@@ -482,7 +477,9 @@ class Network(object):
 
         if not os.path.exists('{}/{}{}'.format(figure_path, self.timestamp,
                                                self.name)):
-            print ('Creating {}{} folder'.format(self.timestamp, self.name, figure_path))
+            print ('Creating {}/{}{} folder'.format(figure_path,
+                                                    self.timestamp,
+                                                    self.name))
             os.makedirs('{}/{}{}'.format(
                 figure_path,
                 self.timestamp,
@@ -493,11 +490,11 @@ class Network(object):
             self.name)
         )
 
-        from sklearn import metrics
         for i in range(self.num_classes):
-            # import pudb;
-            # pu.db
-            fpr, tpr, thresholds = metrics.roc_curve(test_y, raw_prediction[:, i], pos_label=i)
+
+            fpr, tpr, thresholds = metrics.roc_curve(test_y,
+                                                     raw_prediction[:, i],
+                                                     pos_label=i)
 
             auc = integrate.trapz(tpr, fpr)
             print ('AUC: {:.4f}'.format(auc))
@@ -514,7 +511,9 @@ class Network(object):
             plt.xlim(0.0, 1.0)
             plt.show()
 
-            plt.savefig('{}/{}{}/{}.png'.format(figure_path, self.timestamp, self.name, i))
+            plt.savefig('{}/{}{}/{}.png'.format(figure_path,
+                                                self.timestamp,
+                                                self.name, i))
             plt.clf()
 
     def __getstate__(self):
