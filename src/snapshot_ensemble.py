@@ -11,6 +11,7 @@ import numpy as np
 from copy import deepcopy
 
 from utils import get_timestamp
+from utils import get_class
 
 from net import Network
 
@@ -78,7 +79,7 @@ class Snapshot(object):
             self.template_network.learning_rate = self.init_learning_rate
         self.timestamp = get_timestamp()
 
-    def get_output(self, input_data, m=0):
+    def forward_pass(self, input_data, m=0, convert_to_class=False):
         """
         Get output of ensemble of the last m networks where m <= n_snapshots.
 
@@ -86,6 +87,7 @@ class Snapshot(object):
             input_data: Numpy matrix to make the predictions on
             m: the m most recent models from the ensemble to give outputs
                Default to get output from all models.
+            convert_to_class: return class predictions from ensemble
         """
         if m < 0 or m > len(self.networks):
             print('Select the m most recent models to get output from. '
@@ -97,8 +99,12 @@ class Snapshot(object):
             prediction_collection += [net.forward_pass(input_data=input_data,
                                       convert_to_class=False)]
         prediction_collection = np.array(prediction_collection)
-
-        return np.mean(prediction_collection, axis=0, dtype='float32')
+        raw_prediction = np.mean(prediction_collection, axis=0,
+                                 dtype='float32')
+        if convert_to_class:
+            return get_class(raw_prediction)
+        else:
+            return raw_prediction
 
     def save_ensemble(self, save_path='models'):
         """Save all ensembled networks in a folder with ensemble name."""

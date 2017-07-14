@@ -39,8 +39,8 @@ dense_net = Network(
 ensemble_dense = Snapshot(
     name='snap1',
     template_network=dense_net,
-    n_snapshots=5,
-    n_epochs=20,
+    n_snapshots=2,
+    n_epochs=2,
     init_learning_rate=0.01
 )
 ensemble_dense.train(
@@ -51,9 +51,11 @@ ensemble_dense.train(
     batch_ratio=0.2,
     plot=True
 )
-
-# ensemble_dense = Snapshot.load_ensemble('models/20170708153600_snap1')
+ensemble_dense.save_ensemble()
 # import pudb; pu.db
+# ensemble_dense = Snapshot.load_ensemble('models/20170713183810_snap1')
+
+print ensemble_dense.forward_pass(train_images[50000:60000], 2, False)
 # dense_net.train(
 #     epochs=6,
 #     train_x=train_images[:50000],
