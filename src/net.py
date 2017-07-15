@@ -32,6 +32,8 @@ import json
 
 import cPickle as pickle
 
+from sklearn.utils import shuffle
+
 sys.setrecursionlimit(5000)
 
 
@@ -352,7 +354,7 @@ class Network(object):
                                   int(size * ((i + 1) * batch_ratio))]
                     b_y = train_y[int(size * (i * batch_ratio)):
                                   int(size * ((i + 1) * batch_ratio))]
-
+                    b_x, b_y = shuffle(b_x, b_y, random_state=0)
                     self.trainer(b_x, b_y, self.learning_rate)
 
                     sys.stdout.flush()
