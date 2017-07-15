@@ -15,6 +15,8 @@ from utils import get_class
 
 from net import Network
 
+from model_tests import run_test
+
 import json
 
 
@@ -36,6 +38,7 @@ class Snapshot(object):
         self.name = name
         self.timestamp = get_timestamp()
         self.template_network = template_network
+        self.num_classes = template_network.num_classes
         self.M = n_snapshots
         self.T = n_epochs
         self.init_learning_rate = init_learning_rate
@@ -78,6 +81,15 @@ class Snapshot(object):
             self.networks += [deepcopy(self.template_network)]
             self.template_network.learning_rate = self.init_learning_rate
         self.timestamp = get_timestamp()
+
+    def conduct_test(self, test_x, test_y, figure_path='figures'):
+        """Will conduct the test suite to determine model strength."""
+        run_test(
+            network=self,
+            test_x=test_x,
+            test_y=test_y,
+            figure_path=figure_path
+        )
 
     def forward_pass(self, input_data, m=0, convert_to_class=False):
         """

@@ -32,15 +32,15 @@ dense_net = Network(
 # Use to load model from disk
 # dense_net = Network.load_model('models/20170704194033_3_dense_test.network')
 # dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
-# dense_net.train(
-#     epochs=6,
-#     train_x=train_images[:50000],
-#     train_y=train_labels[:50000],
-#     val_x=train_images[50000:60000],
-#     val_y=train_labels[50000:60000],
-#     batch_ratio=0.5,
-#     plot=True
-# )
+dense_net.train(
+    epochs=2,
+    train_x=train_images[:50000],
+    train_y=train_labels[:50000],
+    val_x=train_images[50000:60000],
+    val_y=train_labels[50000:60000],
+    batch_ratio=0.5,
+    plot=True
+)
 
 # dense_net.save_model()
 # dense_net.save_record()
