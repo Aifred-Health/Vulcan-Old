@@ -45,13 +45,18 @@ class Network(object):
         Initialize network specified.
 
         Args:
+            name: string of network name
             dimensions: the size of the input data matrix
             input_var: theano tensor representing input matrix
             y: theano tensor representing truth matrix
             units: The list of number of nodes to have at each layer
-            dropout: The list of dropout probabilities to have at each layer
-            input_network: append networks together (must be of type Network)
+            dropouts: The list of dropout probabilities to have at each layer
+            input_network: a dictionary containing keys (network, layer).
+                network: a Network object
+                layer: an integer corresponding to the layer you want output
             num_classes: None or int. how many classes to predict
+            activation: layer activation function
+            learning_rate: the initial learning rate
         """
         self.name = name
         self.layers = []
@@ -235,18 +240,21 @@ class Network(object):
                 self.cost = self.cross_entropy_loss(out, self.y)
 
         # calculate updates using ADAM optimization gradient descent
+        learning_rate_var = T.scalar(name='learning_rate')
         updates = lasagne.updates.adam(
             loss_or_grads=self.cost,
             params=self.params,
-            learning_rate=self.learning_rate,
+            learning_rate=learning_rate_var,
             beta1=0.9,
             beta2=0.999,
             epsilon=1e-08
         )
 
         # omitted (, allow_input_downcast=True)
-        return theano.function([i for i in [self.input_var, self.y] if i],
-                               updates=updates)
+        return theano.function(
+            [i for i in [self.input_var, self.y, learning_rate_var] if i],
+            updates=updates
+        )
 
     def create_validator(self):
         """
@@ -297,7 +305,7 @@ class Network(object):
             return self.output(input_data)
 
     def train(self, epochs, train_x, train_y, val_x, val_y,
-              batch_ratio=0.1, plot=True):
+              batch_ratio=0.1, plot=True, change_rate=None):
         """
         Train the network.
 
@@ -309,6 +317,7 @@ class Network(object):
             val_y: the validation truth (should not be also in train_y)
             batch_ratio: the percent (0-1) of how much data a batch should have
             plot: boolean if training curves should be plotted while training
+            change_rate: a function that takes alpha and returns alpha'
 
         """
         print ('\nTraining {} in progress...\n'.format(self.name))
@@ -344,11 +353,24 @@ class Network(object):
                     b_y = train_y[int(size * (i * batch_ratio)):
                                   int(size * ((i + 1) * batch_ratio))]
 
-                    self.trainer(b_x, b_y)
+                    self.trainer(b_x, b_y, self.learning_rate)
 
                     sys.stdout.flush()
                     sys.stdout.write('\r\tDone {:.1f}% of the epoch'.format
                                      (100 * (i + 1) * batch_ratio))
+
+                    if change_rate is not None:
+                        if not callable(change_rate):
+                            print ('Parameter change_rate must be a function '
+                                   'that returns a new learning rate. '
+                                   'Learning rate remains unchanged.')
+                            return
+                        # print ('Modifying learning rate from {}'.format(
+                        #     self.learning_rate)
+                        # ),
+                        self.learning_rate = change_rate(self.learning_rate,
+                                                         i)
+                        # print ('to {}'.format(self.learning_rate))
 
                 train_error, train_accuracy = self.validator(train_x, train_y)
                 validation_error, validation_accuracy = self.validator(val_x,
@@ -375,6 +397,7 @@ class Network(object):
                     plt.ion()
                     plt.figure(1)
                     display_record(record=self.record)
+
         except KeyboardInterrupt:
             print ("\n\n**********Training stopped prematurely.**********\n\n")
         finally:
