@@ -348,13 +348,15 @@ class Network(object):
                     epochs - epoch - 1
                 ))
 
+                train_x, train_y = shuffle(train_x, train_y, random_state=0)
+
                 for i in range(int(1 / batch_ratio)):
                     size = train_x.shape[0]
                     b_x = train_x[int(size * (i * batch_ratio)):
                                   int(size * ((i + 1) * batch_ratio))]
                     b_y = train_y[int(size * (i * batch_ratio)):
                                   int(size * ((i + 1) * batch_ratio))]
-                    b_x, b_y = shuffle(b_x, b_y, random_state=0)
+
                     self.trainer(b_x, b_y, self.learning_rate)
 
                     sys.stdout.flush()
@@ -370,8 +372,7 @@ class Network(object):
                         # print ('Modifying learning rate from {}'.format(
                         #     self.learning_rate)
                         # ),
-                        self.learning_rate = change_rate(self.learning_rate,
-                                                         i)
+                        self.learning_rate = change_rate(self.learning_rate, i)
                         # print ('to {}'.format(self.learning_rate))
 
                 train_error, train_accuracy = self.validator(train_x, train_y)
