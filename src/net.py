@@ -67,6 +67,7 @@ class Network(object):
         self.units = units
         self.dropouts = dropouts
         self.learning_rate = learning_rate
+        self.init_learning_rate = learning_rate
         self.input_var = input_var
         self.y = y
         self.input_network = input_network
@@ -118,6 +119,7 @@ class Network(object):
             self.timestamp
         except AttributeError:
             self.timestamp = get_timestamp()
+        self.minibatch_iteration = 0
 
     def create_dense_network(self, units, dropouts, nonlinearity):
         """
@@ -390,9 +392,12 @@ class Network(object):
                         # print ('Modifying learning rate from {}'.format(
                         #     self.learning_rate)
                         # ),
-                        self.learning_rate = change_rate(self.learning_rate, i)
+                        self.learning_rate = change_rate(
+                            self.init_learning_rate,
+                            self.minibatch_iteration
+                        )
                         # print ('to {}'.format(self.learning_rate))
-
+                    self.minibatch_iteration += 1
                 train_error, train_accuracy = self.validator(train_x, train_y)
                 validation_error, validation_accuracy = self.validator(val_x,
                                                                        val_y)

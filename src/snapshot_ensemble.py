@@ -24,7 +24,7 @@ class Snapshot(object):
     """Uses Network to build model snapshots."""
 
     def __init__(self, name, template_network, n_snapshots, n_epochs,
-                 init_learning_rate):
+                 batch_ratio):
         """
         Initialize snapshot ensemble given a network.
 
@@ -39,11 +39,10 @@ class Snapshot(object):
         self.timestamp = get_timestamp()
         self.template_network = template_network
         self.num_classes = template_network.num_classes
+        self.batch_ratio = batch_ratio
         self.M = n_snapshots
-        self.T = n_epochs
-        self.init_learning_rate = init_learning_rate
-        if template_network is not None:
-            self.template_network.learning_rate = init_learning_rate
+        self.T = n_epochs / batch_ratio
+        self.n_epochs = n_epochs
         self.networks = []
 
     def cos_annealing(self, alpha, t):
@@ -60,7 +59,7 @@ class Snapshot(object):
         outer_cos = np.cos(inner_cos) + 1
         return float(alpha / 2 * outer_cos)
 
-    def train(self, train_x, train_y, val_x, val_y, batch_ratio, plot):
+    def train(self, train_x, train_y, val_x, val_y, plot):
         """
         Train each model for T/M epochs and sets new network learning rate.
 
@@ -69,17 +68,16 @@ class Snapshot(object):
         for i in range(self.M):
 
             self.template_network.train(
-                epochs=self.T // self.M,
+                epochs=self.n_epochs // self.M,
                 train_x=train_x,
                 train_y=train_y,
                 val_x=val_x,
                 val_y=val_y,
-                batch_ratio=batch_ratio,
+                batch_ratio=self.batch_ratio,
                 plot=plot,
                 change_rate=self.cos_annealing
             )
             self.networks += [deepcopy(self.template_network)]
-            self.template_network.learning_rate = self.init_learning_rate
         self.timestamp = get_timestamp()
 
     def conduct_test(self, test_x, test_y, figure_path='figures'):

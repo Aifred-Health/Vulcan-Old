@@ -41,14 +41,13 @@ ensemble_dense = Snapshot(
     template_network=dense_net,
     n_snapshots=2,
     n_epochs=2,
-    init_learning_rate=0.01
+    batch_ratio=0.005
 )
 ensemble_dense.train(
     train_x=train_images[:50000],
     train_y=train_labels[:50000],
     val_x=train_images[50000:60000],
     val_y=train_labels[50000:60000],
-    batch_ratio=0.2,
     plot=True
 )
 # ensemble_dense.save_ensemble()
