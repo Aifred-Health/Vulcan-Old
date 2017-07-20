@@ -37,7 +37,6 @@ autoencoder.train(
     batch_ratio=0.5,
     plot=True
 )
-autoencoder.save_model()
 
 dense_net = Network(
     name='3_dense',
@@ -50,9 +49,6 @@ dense_net = Network(
     num_classes=10
 )
 
-# dense_net = Network.load_model('models/20170701193601_3_dense.network')
-
-
 dense_net.train(
     epochs=6,
     train_x=train_images[:50000],
@@ -63,6 +59,7 @@ dense_net.train(
     plot=True
 )
 
+# saves all embedded networks too if they are not allready save
 dense_net.save_model()
 
 # dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])

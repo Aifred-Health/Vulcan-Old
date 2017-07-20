@@ -63,7 +63,7 @@ class Network(object):
         self.name = name
         self.layers = []
         self.cost = None
-        self.dimensions = dimensions
+        self.input_dimensions = dimensions
         self.units = units
         self.dropouts = dropouts
         self.learning_rate = learning_rate
@@ -71,9 +71,23 @@ class Network(object):
         self.y = y
         self.input_network = input_network
         if self.input_network is not None:
-            self.input_var = lasagne.layers.get_all_layers(
-                self.input_network['network']
-            )[0].input_var
+            if self.input_network.get('network', False) and \
+               self.input_network.get('layer', False):
+
+                self.input_var = lasagne.layers.get_all_layers(
+                    self.input_network['network']
+                )[0].input_var
+
+                self.input_dimensions = lasagne.layers.get_output_shape(
+                    self.input_network['network'].layers[
+                        self.input_network['layer']
+                    ]
+                )
+
+            else:
+                print('input network requires \{\'network\': type Network,'
+                      ' \'layer\': type int\}')
+                return
 
         self.activation = activation
         self.network = self.create_dense_network(
@@ -120,7 +134,7 @@ class Network(object):
         print ("Creating {} Network...".format(self.name))
         if self.input_network is None:
             print ('\tInput Layer:')
-            network = lasagne.layers.InputLayer(shape=self.dimensions,
+            network = lasagne.layers.InputLayer(shape=self.input_dimensions,
                                                 input_var=self.input_var,
                                                 name="{}_input".format(
                                                      self.name))
@@ -450,7 +464,7 @@ class Network(object):
 
         self.y = T.matrix('truth')
         self.__init__(self.__dict__['name'],
-                      self.__dict__['dimensions'],
+                      self.__dict__['input_dimensions'],
                       self.__dict__['input_var'],
                       self.__dict__['y'],
                       self.__dict__['units'],
@@ -470,6 +484,10 @@ class Network(object):
         Args:
             save_path: the location where you want to save the params
         """
+        if self.input_network is not None:
+            if not hasattr(self.input_network['network'], 'save_name'):
+                self.input_network['network'].save_model()
+
         if not os.path.exists(save_path):
             print ('Path not found, creating {}'.format(save_path))
             os.makedirs(save_path)
@@ -525,7 +543,7 @@ class Network(object):
         """
         config = {
             "{}".format(file_path): {
-                "dimensions": self.dimensions,
+                "input_dimensions": self.input_dimensions,
                 "input_var": "{}".format(self.input_var.type),
                 "y": "{}".format(self.y.type),
                 "units": self.units,
