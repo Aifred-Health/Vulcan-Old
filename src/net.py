@@ -85,9 +85,13 @@ class Network(object):
                 )
 
             else:
-                print('input network requires \{\'network\': type Network,'
-                      ' \'layer\': type int\}')
-                return
+                raise ValueError(
+                    'input_network requires {{ network: type Network,'
+                    ' layer: type int}}. '
+                    'Only given keys: {}'.format(
+                        self.input_network.keys()
+                    )
+                )
 
         self.activation = activation
         self.network = self.create_dense_network(
