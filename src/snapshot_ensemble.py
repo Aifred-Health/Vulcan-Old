@@ -42,9 +42,18 @@ class Snapshot(object):
         self.num_classes = template_network.num_classes
 
         self.batch_ratio = batch_ratio
-        self.M = n_snapshots
+        if n_snapshots <= 0:
+            print('Number of Snapshots too small. Setting to 1.')
+            self.M = 1
+        else:
+            self.M = n_snapshots
+        if n_epochs < self.M:
+            print('Number of epochs to small for number of Snapshots. '
+                  'Setting to {}.'.format(self.M))
+            self.n_epochs = self.M
+        else:
+            self.n_epochs = n_epochs
         self.T = n_epochs / batch_ratio
-        self.n_epochs = n_epochs
         self.networks = []
 
     def cos_annealing(self, alpha, t):
