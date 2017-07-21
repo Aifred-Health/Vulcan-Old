@@ -59,6 +59,8 @@ class Network(object):
                 layer: an integer corresponding to the layer you want output
             num_classes: None or int. how many classes to predict
             activation: layer activation function
+            pred_activation: the classifying layer activation
+            optimizer: which optimizer to usem as the learning function
             learning_rate: the initial learning rate
         """
         self.name = name
@@ -80,7 +82,8 @@ class Network(object):
                 'Invalid activation option: {} and {}. '
                 'Please choose from:'
                 '{}'.format(activation, pred_activation, activations.keys()))
-
+        self.activation = activation
+        self.pred_activation = pred_activation
         self.optimizer = optimizer
         self.input_var = input_var
         self.y = y
@@ -107,19 +110,17 @@ class Network(object):
                         self.input_network.keys()
                     )
                 )
-
-        self.activation = activation
         self.network = self.create_dense_network(
             units=units,
             dropouts=dropouts,
-            nonlinearity=activations[activation]
+            nonlinearity=activations[self.activation]
         )
         self.num_classes = num_classes
         if num_classes is not None and num_classes != 0:
             self.network = self.create_classification_layer(
                 self.network,
                 num_classes=num_classes,
-                nonlinearity=activations[pred_activation]
+                nonlinearity=activations[self.pred_activation]
             )
         if self.y is not None:
             self.trainer = self.create_trainer()
@@ -502,6 +503,8 @@ class Network(object):
                       self.__dict__['input_network'],
                       self.__dict__['num_classes'],
                       self.__dict__['activation'],
+                      self.__dict__['pred_activation'],
+                      self.__dict__['optimizer'],
                       self.__dict__['learning_rate'])
         lasagne.layers.set_all_param_values(self.layers,
                                             params[1],

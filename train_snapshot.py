@@ -45,23 +45,9 @@ ensemble_dense.train(
     val_y=train_labels[50000:60000],
     plot=True
 )
-# ensemble_dense.save_ensemble()
-# import pudb; pu.db
+
+
 # ensemble_dense = Snapshot.load_ensemble('models/20170713183810_snap1')
 ensemble_dense.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
-# dense_net.train(
-#     epochs=6,
-#     train_x=train_images[:50000],
-#     train_y=train_labels[:50000],
-#     val_x=train_images[50000:60000],
-#     val_y=train_labels[50000:60000],
-#     batch_ratio=0.5,
-#     plot=True
-# )
-
-
-
-# dense_net.save_model()
-# dense_net.save_record()
-
+ensemble_dense.save_ensemble()
 # dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])

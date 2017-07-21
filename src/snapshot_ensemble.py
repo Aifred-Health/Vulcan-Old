@@ -30,15 +30,17 @@ class Snapshot(object):
 
         Args:
             name: string of snapshot ensemble name
-            network: Network object which you want to ensemble
-            M: number of snapshots in ensemble
-            T: total number of epochs
-            init_learning_rate: start learning rate
+            template_network: Network object which you want to ensemble
+            n_snapshots: number of snapshots in ensemble
+            n_epochs: total number of epochs
+            batch_ratio: the minibatch size to total ratio
         """
         self.name = name
         self.timestamp = get_timestamp()
         self.template_network = template_network
+
         self.num_classes = template_network.num_classes
+
         self.batch_ratio = batch_ratio
         self.M = n_snapshots
         self.T = n_epochs / batch_ratio
@@ -131,7 +133,7 @@ class Snapshot(object):
 
     @classmethod
     def load_ensemble(cls, ensemble_path):
-        """Load up ensembled models with a folder location."""
+        """Load up ensembled models given a folder location."""
         json_file = "{}_metadata.json".format(
             os.path.join(ensemble_path, os.path.basename(ensemble_path))
         )
@@ -146,10 +148,10 @@ class Snapshot(object):
 
         snap = Snapshot(
             name='snap1',
-            template_network=None,
+            template_network=networks[0],
             n_snapshots=config[ensemble_path]['n_snapshots'],
             n_epochs=config[ensemble_path]['n_epochs'],
-            init_learning_rate=config[ensemble_path]['init_learning_rate']
+            batch_ratio=config[ensemble_path]['batch_ratio']
         )
         snap.networks = networks
         return snap
@@ -160,15 +162,13 @@ class Snapshot(object):
 
         Args:
             file_path: the npz file path without the npz
-
-            self, name, template_network, n_snapshots, n_epochs,
-                 init_learning_rate):
         """
         config = {
             "{}".format(file_path): {
                 "n_snapshots": self.M,
                 "n_epochs": self.T,
-                "init_learning_rate": self.init_learning_rate,
+                "init_learning_rate": self.template_network.init_learning_rate,
+                "batch_ratio": self.batch_ratio,
                 "networks": [{n.name: n.save_name} for n in self.networks]
             }
         }
