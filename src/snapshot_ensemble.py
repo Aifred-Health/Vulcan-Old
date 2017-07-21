@@ -24,26 +24,36 @@ class Snapshot(object):
     """Uses Network to build model snapshots."""
 
     def __init__(self, name, template_network, n_snapshots, n_epochs,
-                 init_learning_rate):
+                 batch_ratio):
         """
         Initialize snapshot ensemble given a network.
 
         Args:
             name: string of snapshot ensemble name
-            network: Network object which you want to ensemble
-            M: number of snapshots in ensemble
-            T: total number of epochs
-            init_learning_rate: start learning rate
+            template_network: Network object which you want to ensemble
+            n_snapshots: number of snapshots in ensemble
+            n_epochs: total number of epochs
+            batch_ratio: the minibatch size to total ratio
         """
         self.name = name
         self.timestamp = get_timestamp()
         self.template_network = template_network
+
         self.num_classes = template_network.num_classes
-        self.M = n_snapshots
-        self.T = n_epochs
-        self.init_learning_rate = init_learning_rate
-        if template_network is not None:
-            self.template_network.learning_rate = init_learning_rate
+
+        self.batch_ratio = batch_ratio
+        if n_snapshots <= 0:
+            print('Number of Snapshots too small. Setting to 1.')
+            self.M = 1
+        else:
+            self.M = n_snapshots
+        if n_epochs < self.M:
+            print('Number of epochs to small for number of Snapshots. '
+                  'Setting to {}.'.format(self.M))
+            self.n_epochs = self.M
+        else:
+            self.n_epochs = n_epochs
+        self.T = n_epochs / batch_ratio
         self.networks = []
 
     def cos_annealing(self, alpha, t):
@@ -60,7 +70,7 @@ class Snapshot(object):
         outer_cos = np.cos(inner_cos) + 1
         return float(alpha / 2 * outer_cos)
 
-    def train(self, train_x, train_y, val_x, val_y, batch_ratio, plot):
+    def train(self, train_x, train_y, val_x, val_y, plot):
         """
         Train each model for T/M epochs and sets new network learning rate.
 
@@ -69,17 +79,16 @@ class Snapshot(object):
         for i in range(self.M):
 
             self.template_network.train(
-                epochs=self.T // self.M,
+                epochs=self.n_epochs // self.M,
                 train_x=train_x,
                 train_y=train_y,
                 val_x=val_x,
                 val_y=val_y,
-                batch_ratio=batch_ratio,
+                batch_ratio=self.batch_ratio,
                 plot=plot,
                 change_rate=self.cos_annealing
             )
             self.networks += [deepcopy(self.template_network)]
-            self.template_network.learning_rate = self.init_learning_rate
         self.timestamp = get_timestamp()
 
     def conduct_test(self, test_x, test_y, figure_path='figures'):
@@ -133,7 +142,7 @@ class Snapshot(object):
 
     @classmethod
     def load_ensemble(cls, ensemble_path):
-        """Load up ensembled models with a folder location."""
+        """Load up ensembled models given a folder location."""
         json_file = "{}_metadata.json".format(
             os.path.join(ensemble_path, os.path.basename(ensemble_path))
         )
@@ -148,10 +157,10 @@ class Snapshot(object):
 
         snap = Snapshot(
             name='snap1',
-            template_network=None,
+            template_network=networks[0],
             n_snapshots=config[ensemble_path]['n_snapshots'],
             n_epochs=config[ensemble_path]['n_epochs'],
-            init_learning_rate=config[ensemble_path]['init_learning_rate']
+            batch_ratio=config[ensemble_path]['batch_ratio']
         )
         snap.networks = networks
         return snap
@@ -162,15 +171,13 @@ class Snapshot(object):
 
         Args:
             file_path: the npz file path without the npz
-
-            self, name, template_network, n_snapshots, n_epochs,
-                 init_learning_rate):
         """
         config = {
             "{}".format(file_path): {
                 "n_snapshots": self.M,
                 "n_epochs": self.T,
-                "init_learning_rate": self.init_learning_rate,
+                "init_learning_rate": self.template_network.init_learning_rate,
+                "batch_ratio": self.batch_ratio,
                 "networks": [{n.name: n.save_name} for n in self.networks]
             }
         }

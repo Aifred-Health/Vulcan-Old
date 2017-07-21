@@ -27,47 +27,27 @@ dense_net = Network(
     dropouts=[0.2, 0.2],
     input_network=None,
     num_classes=10,
-    activation='rectify'
+    activation='rectify',
+    learning_rate=0.01
 )
-# def identity(x,i):
-#     return x
-# dense_net.save_model()
-# Use to load model from disk
-# dense_net = Network.load_model('models/20170706203344_3_dense_test.network')
-# dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
 
 ensemble_dense = Snapshot(
     name='snap_test',
     template_network=dense_net,
     n_snapshots=2,
     n_epochs=2,
-    init_learning_rate=0.01
+    batch_ratio=0.005
 )
 ensemble_dense.train(
     train_x=train_images[:50000],
     train_y=train_labels[:50000],
     val_x=train_images[50000:60000],
     val_y=train_labels[50000:60000],
-    batch_ratio=0.2,
     plot=True
 )
-# ensemble_dense.save_ensemble()
-# import pudb; pu.db
+
+
 # ensemble_dense = Snapshot.load_ensemble('models/20170713183810_snap1')
 ensemble_dense.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
-# dense_net.train(
-#     epochs=6,
-#     train_x=train_images[:50000],
-#     train_y=train_labels[:50000],
-#     val_x=train_images[50000:60000],
-#     val_y=train_labels[50000:60000],
-#     batch_ratio=0.5,
-#     plot=True
-# )
-
-
-
-# dense_net.save_model()
-# dense_net.save_record()
-
+ensemble_dense.save_ensemble()
 # dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])

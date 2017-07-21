@@ -29,7 +29,7 @@ autoencoder = Network(
 # autoencoder = Network.load_model('models/20170701174206_autoencoder_mnist.network')
 
 autoencoder.train(
-    epochs=20,
+    epochs=2,
     train_x=train_images[:50000],
     train_y=train_images[:50000],
     val_x=train_images[50000:60000],
