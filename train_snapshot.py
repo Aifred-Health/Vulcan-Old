@@ -27,14 +27,9 @@ dense_net = Network(
     dropouts=[0.2, 0.2],
     input_network=None,
     num_classes=10,
-    activation='rectify'
+    activation='rectify',
+    learning_rate=0.01
 )
-# def identity(x,i):
-#     return x
-# dense_net.save_model()
-# Use to load model from disk
-# dense_net = Network.load_model('models/20170706203344_3_dense_test.network')
-# dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
 
 ensemble_dense = Snapshot(
     name='snap_test',

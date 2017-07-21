@@ -9,7 +9,6 @@ import sys
 import numpy as np
 
 import lasagne
-from lasagne.nonlinearities import sigmoid, softmax, rectify
 
 import matplotlib
 if "DISPLAY" not in os.environ:
@@ -23,10 +22,11 @@ from utils import get_class
 from utils import display_record
 from utils import get_timestamp
 
-from selu import selu
 from selu import AlphaDropoutLayer
 
 from model_tests import run_test
+
+from ops import activations, optimizers
 
 import json
 
@@ -42,6 +42,7 @@ class Network(object):
 
     def __init__(self, name, dimensions, input_var, y, units, dropouts,
                  input_network=None, num_classes=None, activation='rectify',
+                 pred_activation='softmax', optimizer='adam',
                  learning_rate=0.001):
         """
         Initialize network specified.
@@ -68,6 +69,19 @@ class Network(object):
         self.dropouts = dropouts
         self.learning_rate = learning_rate
         self.init_learning_rate = learning_rate
+        if not optimizers.get(optimizer, False):
+            raise ValueError(
+                'Invalid optimizer option: {}. '
+                'Please choose from:'
+                '{}'.format(optimizer, optimizers.keys()))
+        if not activations.get(activation, False) or \
+           not activations.get(pred_activation, False):
+            raise ValueError(
+                'Invalid activation option: {} and {}. '
+                'Please choose from:'
+                '{}'.format(activation, pred_activation, activations.keys()))
+
+        self.optimizer = optimizer
         self.input_var = input_var
         self.y = y
         self.input_network = input_network
@@ -98,14 +112,14 @@ class Network(object):
         self.network = self.create_dense_network(
             units=units,
             dropouts=dropouts,
-            nonlinearity=selu if self.activation == 'selu' else rectify
+            nonlinearity=activations[activation]
         )
         self.num_classes = num_classes
         if num_classes is not None and num_classes != 0:
             self.network = self.create_classification_layer(
                 self.network,
                 num_classes=num_classes,
-                nonlinearity=sigmoid if num_classes == 1 else softmax
+                nonlinearity=activations[pred_activation]
             )
         if self.y is not None:
             self.trainer = self.create_trainer()
@@ -263,14 +277,21 @@ class Network(object):
 
         # calculate updates using ADAM optimization gradient descent
         learning_rate_var = T.scalar(name='learning_rate')
-        updates = lasagne.updates.adam(
-            loss_or_grads=self.cost,
-            params=self.params,
-            learning_rate=learning_rate_var,
-            beta1=0.9,
-            beta2=0.999,
-            epsilon=1e-08
-        )
+        if self.optimizer == 'adam':
+            updates = optimizers[self.optimizer](
+                loss_or_grads=self.cost,
+                params=self.params,
+                learning_rate=learning_rate_var,
+                beta1=0.9,
+                beta2=0.999,
+                epsilon=1e-08
+            )
+        elif self.optimizer == 'sgd':
+            updates = optimizers[self.optimizer](
+                loss_or_grads=self.cost,
+                params=self.params,
+                learning_rate=learning_rate_var
+            )
 
         # omitted (, allow_input_downcast=True)
         return theano.function(

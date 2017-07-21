@@ -25,7 +25,9 @@ dense_net = Network(
     dropouts=[0.2, 0.2, 0.2],
     input_network=None,
     num_classes=10,
-    activation='rectify'
+    activation='rectify',
+    pred_activation='softmax',
+    optimizer='adam'
 )
 
 # dense_net.save_model()
