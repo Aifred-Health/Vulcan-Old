@@ -3,6 +3,9 @@ import os
 
 import numpy as np
 
+import theano
+import theano.tensor as T
+
 import pickle
 
 import matplotlib.pyplot as plt
@@ -10,6 +13,40 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 from sklearn.metrics import confusion_matrix
+
+
+def display_saliency_overlay(image, saliency_map):
+    """Overlay saliency map over image."""
+    plt.figure()
+    plt.imshow(np.reshape(image, (28, 28)), cmap='binary')
+    plt.imshow(np.reshape(saliency_map, (28, 28)), cmap=plt.cm.hot, alpha=0.6)
+    plt.colorbar()
+    plt.show(False)
+
+
+def get_saliency_map(network, input_data):
+        """
+        Calculate the saliency map for all input samples.
+
+        Calculates the derivative of the score w.r.t the input
+
+        Args:
+            input_data: ndarray(2D), batch of samples
+
+        Returns saliency map for all given samples
+        """
+        sal_fun = theano.function(
+            [network.input_var, network.y],
+            T.grad(network.cost, network.input_var)
+        )
+        sal_map = sal_fun(
+            input_data,
+            network.forward_pass(input_data)
+        )
+        if sal_map.shape != input_data.shape:
+            raise ValueError('Shape mismatch')
+
+        return sal_map
 
 
 def get_all_embedded_networks(network):
