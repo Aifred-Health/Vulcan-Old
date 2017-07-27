@@ -122,6 +122,21 @@ def run_test(network, test_x, test_y, figure_path='figures'):
         network.name)
     )
 
+    plt.figure(3)
+    plt.title("Confusion matrix for {}".format(network.name))
+    plt.xticks(range(confusion_matrix.shape[0]))
+    plt.yticks(range(confusion_matrix.shape[0]))
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.imshow(confusion_matrix, origin='lower', cmap='hot',
+               interpolation='nearest')
+    plt.colorbar()
+
+    plt.savefig('{}/{}{}/confusion_matrix.png'.format(
+        figure_path,
+        network.timestamp,
+        network.name))
+
     for i in range(network.num_classes):
 
         fpr, tpr, thresholds = metrics.roc_curve(test_y,
@@ -137,8 +152,8 @@ def run_test(network, test_x, test_y, figure_path='figures'):
         plt.clf()
         plt.plot(fpr, tpr, label=("AUC: {:.4f}".format(auc)))
         plt.title("ROC Curve for {}_{}".format(network.name, i))
-        plt.xlabel('1 - specificity')
-        plt.ylabel('sensitivity')
+        plt.xlabel('False positive rate')
+        plt.ylabel('True positive rate')
         plt.legend(loc='lower right')
         plt.ylim(0.0, 1.0)
         plt.xlim(0.0, 1.0)

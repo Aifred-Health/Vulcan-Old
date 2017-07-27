@@ -430,11 +430,12 @@ class Network(object):
                 self.record['validation_error'].append(validation_error)
                 self.record['validation_accuracy'].append(validation_accuracy)
                 epoch_time_spent = time.time() - epoch_time
-                print ("\n\terror: {} and accuracy: {} in {:.2f}s".format(
-                    train_error,
-                    train_accuracy,
-                    epoch_time_spent)
-                )
+                print ("\n\terror: {} and accuracy: {} in {:.2f}s"
+                       .format(
+                           train_error,
+                           train_accuracy,
+                           epoch_time_spent))
+
                 eta = epoch_time_spent * (epochs - epoch - 1)
                 minute, second = divmod(eta, 60)
                 hour, minute = divmod(minute, 60)
