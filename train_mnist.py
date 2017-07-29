@@ -1,8 +1,8 @@
 import numpy as np
 
-import theano.tensor as T
-
 from src.net import Network
+
+import theano.tensor as T
 
 from src.utils import get_one_hot
 

@@ -17,20 +17,26 @@ from sklearn.metrics import confusion_matrix
 
 def display_saliency_overlay(image, saliency_map):
     """Overlay saliency map over image."""
-    plt.figure()
+    fig = plt.figure()
+    fig.add_subplot(1, 2, 1)
+    plt.imshow(np.reshape(image, (28, 28)), cmap='gray')
+    fig.add_subplot(1, 2, 2)
     plt.imshow(np.reshape(image, (28, 28)), cmap='binary')
-    plt.imshow(np.reshape(saliency_map, (28, 28)), cmap=plt.cm.hot, alpha=0.6)
+    plt.imshow(np.reshape(abs(saliency_map), (28, 28)),
+               cmap=plt.cm.hot, alpha=0.7)
     plt.colorbar()
     plt.show(False)
 
 
-def get_saliency_map(network, input_data):
+def get_saliency_map(network, input_data, truth):
         """
         Calculate the saliency map for all input samples.
 
-        Calculates the derivative of the score w.r.t the input
+        Calculates the derivative of the score w.r.t the input.
+        Helps with getting the 'why' from a prediction.
 
         Args:
+            network: Network type to get
             input_data: ndarray(2D), batch of samples
 
         Returns saliency map for all given samples
@@ -41,11 +47,10 @@ def get_saliency_map(network, input_data):
         )
         sal_map = sal_fun(
             input_data,
-            network.forward_pass(input_data)
+            truth
         )
         if sal_map.shape != input_data.shape:
             raise ValueError('Shape mismatch')
-
         return sal_map
 
 
