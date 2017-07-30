@@ -3,6 +3,8 @@ import os
 
 import numpy as np
 
+from math import sqrt, ceil, floor
+
 import theano
 import theano.tensor as T
 
@@ -15,14 +17,51 @@ from datetime import datetime
 from sklearn.metrics import confusion_matrix
 
 
-def display_saliency_overlay(image, saliency_map):
+def display_receptive_fields(network, layer_list=None):
+    """
+    Display receptive fields of layers from a network.
+
+    Args:
+        network: Network object
+        layer: list of layer indices to get fields
+    """
+    if layer_list is None:
+        layer_list = range(len(network.layers))
+    if not isinstance(layer_list, list):
+        raise ValueError('layer_list must be a list of int')
+    layers = []
+    # Filter out layers with no weights. e.g. input, dropout
+    for index in layer_list:
+        try:
+            network.layers[index].W
+        except:
+            print ('Skipping layer: {}'.format(network.layers[index].name))
+            continue
+        else:
+            layers.append(network.layers[index])
+    # Get fields for filtered layers
+    fig = plt.figure()
+    for i, l in enumerate(layers):
+        raw_field = l.W.__dict__['container'].__dict__['storage'][0]
+        field = np.average(raw_field, axis=1)  # average all outgoing
+        field_shape = [int(sqrt(field.shape[0]))] * 2
+        fig.add_subplot(floor(sqrt(len(layers))),
+                        ceil(sqrt(len(layers))),
+                        i + 1)
+        plt.title(l.name)
+        plt.imshow(np.reshape(abs(field), field_shape), cmap='hot')
+        plt.colorbar()
+    plt.show(False)
+
+
+def display_saliency_overlay(image, saliency_map, shape=(28, 28)):
     """Overlay saliency map over image."""
     fig = plt.figure()
     fig.add_subplot(1, 2, 1)
-    plt.imshow(np.reshape(image, (28, 28)), cmap='gray')
+    plt.imshow(np.reshape(image, shape), cmap='gray')
     fig.add_subplot(1, 2, 2)
-    plt.imshow(np.reshape(image, (28, 28)), cmap='binary')
-    plt.imshow(np.reshape(abs(saliency_map), (28, 28)),
+    plt.imshow(np.reshape(image, shape), cmap='binary')
+    plt.imshow(np.reshape(abs(saliency_map), shape),
                cmap=plt.cm.hot, alpha=0.7)
     plt.colorbar()
     plt.show(False)
@@ -38,6 +77,7 @@ def get_saliency_map(network, input_data, truth):
         Args:
             network: Network type to get
             input_data: ndarray(2D), batch of samples
+            truth: ndarray(2D), batch of labels
 
         Returns saliency map for all given samples
         """
