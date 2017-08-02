@@ -444,7 +444,7 @@ class Network(object):
 
                 if plot:
                     plt.ion()
-                    plt.figure(1)
+                    plt.figure()
                     display_record(record=self.record)
 
         except KeyboardInterrupt:

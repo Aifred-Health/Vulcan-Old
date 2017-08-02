@@ -16,7 +16,7 @@ from utils import get_one_hot
 from sklearn import metrics
 
 
-def run_test(network, test_x, test_y, figure_path='figures'):
+def run_test(network, test_x, test_y, figure_path='figures', plot_auc=False):
     """
     Will conduct the test suite to determine model strength.
 
@@ -122,7 +122,7 @@ def run_test(network, test_x, test_y, figure_path='figures'):
         network.name)
     )
 
-    plt.figure(3)
+    plt.figure()
     plt.title("Confusion matrix for {}".format(network.name))
     plt.xticks(range(confusion_matrix.shape[0]))
     plt.yticks(range(confusion_matrix.shape[0]))
@@ -150,10 +150,11 @@ def run_test(network, test_x, test_y, figure_path='figures'):
                                                  pos_label=i)
         auc = all_class_auc[i]
         print ('AUC: {:.4f}'.format(auc))
-        print ('\tGenerating ROC_{} ...'.format(i))
+        print ('\tGenerating ROC {}/{}{}/{}.png ...'.format(figure_path,
+                                                            network.timestamp,
+                                                            network.name, i))
 
-        plt.figure(2)
-        plt.ion()
+        plt.figure()
         plt.clf()
         plt.plot(fpr, tpr, label=("AUC: {:.4f}".format(auc)))
         plt.title("ROC Curve for {}_{}".format(network.name, i))
@@ -162,7 +163,8 @@ def run_test(network, test_x, test_y, figure_path='figures'):
         plt.legend(loc='lower right')
         plt.ylim(0.0, 1.0)
         plt.xlim(0.0, 1.0)
-        plt.show()
+        if plot_auc:
+            plt.show()
 
         plt.savefig('{}/{}{}/{}.png'.format(figure_path,
                                             network.timestamp,
