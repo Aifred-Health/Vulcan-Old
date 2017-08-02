@@ -25,8 +25,7 @@ def run_test(network, test_x, test_y, figure_path='figures', plot_auc=False):
         test_y: corresponding truth vectors
     """
     if network.num_classes is None or network.num_classes == 0:
-        print ('Cannot conduct test: there\'s no classification layer')
-        return
+        raise ValueError('There\'s no classification layer')
 
     if test_y.shape[1] > 1:
         test_y = get_class(test_y)  # Y is in one hot representation
