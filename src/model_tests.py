@@ -11,8 +11,7 @@ import matplotlib.pyplot as plt
 from utils import get_class
 from utils import get_confusion_matrix
 from utils import round_list
-
-from scipy import integrate
+from utils import get_one_hot
 
 from sklearn import metrics
 
@@ -34,9 +33,10 @@ def run_test(network, test_x, test_y, figure_path='figures'):
 
     raw_prediction = network.forward_pass(input_data=test_x,
                                           convert_to_class=False)
+    class_prediction = get_class(raw_prediction)
 
     confusion_matrix = get_confusion_matrix(
-        prediction=get_class(raw_prediction),
+        prediction=class_prediction,
         truth=test_y
     )
 
@@ -137,13 +137,18 @@ def run_test(network, test_x, test_y, figure_path='figures'):
         network.timestamp,
         network.name))
 
+    all_class_auc = metrics.roc_auc_score(
+        get_one_hot(test_y),
+        get_one_hot(class_prediction),
+        average=None
+    )
+
     for i in range(network.num_classes):
 
         fpr, tpr, thresholds = metrics.roc_curve(test_y,
                                                  raw_prediction[:, i],
                                                  pos_label=i)
-
-        auc = integrate.trapz(tpr, fpr)
+        auc = all_class_auc[i]
         print ('AUC: {:.4f}'.format(auc))
         print ('\tGenerating ROC_{} ...'.format(i))
 
@@ -162,3 +167,13 @@ def run_test(network, test_x, test_y, figure_path='figures'):
         plt.savefig('{}/{}{}/{}.png'.format(figure_path,
                                             network.timestamp,
                                             network.name, i))
+    return {
+        'accuracy': accuracy,
+        'macro_sensitivity': sens_macro,
+        'macro_specificity': spec_macro,
+        'avg_dice': np.average(dice),
+        'macro_ppv': ppv_macro,
+        'macro_npv': npv_macro,
+        'macro_f1': f1_macro,
+        'macro_auc': np.average(all_class_auc)
+    }

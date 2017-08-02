@@ -17,7 +17,7 @@ from datetime import datetime
 from sklearn.metrics import confusion_matrix
 
 
-def display_receptive_fields(network, layer_list=None):
+def display_receptive_fields(network, layer_list=None, top_k=5):
     """
     Display receptive fields of layers from a network.
 
@@ -40,18 +40,30 @@ def display_receptive_fields(network, layer_list=None):
         else:
             layers.append(network.layers[index])
     # Get fields for filtered layers
+    feature_importance = {}
     fig = plt.figure()
     for i, l in enumerate(layers):
-        raw_field = l.W.__dict__['container'].__dict__['storage'][0]
+        raw_field = l.W.container.storage[0]
         field = np.average(raw_field, axis=1)  # average all outgoing
         field_shape = [int(sqrt(field.shape[0]))] * 2
         fig.add_subplot(floor(sqrt(len(layers))),
                         ceil(sqrt(len(layers))),
                         i + 1)
+        feats = get_notable_indices(abs(field), top_k=top_k)
+        feature_importance.update({'{}'.format(l.name): feats})
         plt.title(l.name)
         plt.imshow(np.reshape(abs(field), field_shape), cmap='hot')
         plt.colorbar()
     plt.show(False)
+    return feature_importance
+
+
+def get_notable_indices(matrix, top_k=5):
+    """Return dict of top k and bottom k features useful."""
+    important_features = matrix.argsort()[-top_k:][::-1]
+    unimportant_features = matrix.argsort()[:-1][:top_k]
+    return {'important_indices': important_features,
+            'unimportant_indices': unimportant_features}
 
 
 def display_saliency_overlay(image, saliency_map, shape=(28, 28)):
