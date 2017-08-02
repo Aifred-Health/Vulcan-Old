@@ -454,7 +454,7 @@ class Network(object):
 
     def conduct_test(self, test_x, test_y, figure_path='figures'):
         """Will conduct the test suite to determine model strength."""
-        run_test(
+        return run_test(
             network=self,
             test_x=test_x,
             test_y=test_y,
