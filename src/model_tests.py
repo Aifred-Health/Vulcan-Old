@@ -3,26 +3,33 @@ import os
 
 import numpy as np
 
+from utils import get_class
+from utils import get_confusion_matrix
+from utils import round_list
+from utils import get_one_hot
+from utils import get_timestamp
+
+from sklearn import metrics
+
+from copy import deepcopy
+
+from collections import Counter
+
 import matplotlib
 if "DISPLAY" not in os.environ:
     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-from utils import get_class
-from utils import get_confusion_matrix
-from utils import round_list
-from utils import get_one_hot
 
-from sklearn import metrics
-
-
-def run_test(network, test_x, test_y, figure_path='figures', plot_auc=False):
+def run_test(network, test_x, test_y, figure_path='figures', plot_roc=False):
     """
     Will conduct the test suite to determine model strength.
 
     Args:
         test_x: data the model has not yet seen to predict
         test_y: corresponding truth vectors
+        figure_path: string, folder to place images in.
+        plot_roc: bool, determines if roc should be plotted when ran.
     """
     if network.num_classes is None or network.num_classes == 0:
         raise ValueError('There\'s no classification layer')
@@ -116,7 +123,8 @@ def run_test(network, test_x, test_y, figure_path='figures', plot_auc=False):
             network.timestamp,
             network.name)
         )
-    print ('Saving ROC figures to folder: {}{}'.format(
+    print ('Saving ROC figures to folder: {}/{}{}'.format(
+        figure_path,
         network.timestamp,
         network.name)
     )
@@ -141,19 +149,18 @@ def run_test(network, test_x, test_y, figure_path='figures', plot_auc=False):
         get_one_hot(class_prediction),
         average=None
     )
-
+    plt.figure()
     for i in range(network.num_classes):
 
         fpr, tpr, thresholds = metrics.roc_curve(test_y,
                                                  raw_prediction[:, i],
                                                  pos_label=i)
         auc = all_class_auc[i]
-        print ('AUC: {:.4f}'.format(auc))
-        print ('\tGenerating ROC {}/{}{}/{}.png ...'.format(figure_path,
-                                                            network.timestamp,
-                                                            network.name, i))
+        # print ('AUC: {:.4f}'.format(auc))
+        # print ('\tGenerating ROC {}/{}{}/{}.png ...'.format(figure_path,
+        #                                                     network.timestamp,
+        #                                                     network.name, i))
 
-        plt.figure()
         plt.clf()
         plt.plot(fpr, tpr, label=("AUC: {:.4f}".format(auc)))
         plt.title("ROC Curve for {}_{}".format(network.name, i))
@@ -162,12 +169,13 @@ def run_test(network, test_x, test_y, figure_path='figures', plot_auc=False):
         plt.legend(loc='lower right')
         plt.ylim(0.0, 1.0)
         plt.xlim(0.0, 1.0)
-        if plot_auc:
+        if plot_roc:
             plt.show()
 
         plt.savefig('{}/{}{}/{}.png'.format(figure_path,
                                             network.timestamp,
                                             network.name, i))
+    print ('Average AUC: : {:.4f}'.format(np.average(all_class_auc)))
     return {
         'accuracy': accuracy,
         'macro_sensitivity': sens_macro,
@@ -178,3 +186,59 @@ def run_test(network, test_x, test_y, figure_path='figures', plot_auc=False):
         'macro_f1': f1_macro,
         'macro_auc': np.average(all_class_auc)
     }
+
+
+def k_fold_validation(network, train_x, train_y, k=5, epochs=10):
+    """
+    Conduct k fold cross validation on a network.
+
+    Args:
+        network: Network object you want to cross validate
+        train_x: ndarray of shape (batch, features), train samples
+        train_y: ndarray of shape(batch, classes), train labels
+        k: int, how many folds to run
+        epochs: int, number of epochs to train each fold
+
+    Returns final metric dictionary
+    """
+    try:
+        network.save_name
+    except:
+        network.save_model()
+    chunk_size = int((train_x.shape[0]) / k)
+    results = []
+    timestamp = get_timestamp()
+    for i in range(k):
+        val_x = train_x[i * chunk_size:(i + 1) * chunk_size]
+        val_y = train_y[i * chunk_size:(i + 1) * chunk_size]
+        tra_x = np.concatenate(
+            (train_x[:i * chunk_size], train_x[(i + 1) * chunk_size:]),
+            axis=0
+        )
+        tra_y = np.concatenate(
+            (train_y[:i * chunk_size], train_y[(i + 1) * chunk_size:]),
+            axis=0
+        )
+        net = deepcopy(network)
+        net.train(
+            epochs=epochs,
+            train_x=tra_x,
+            train_y=tra_y,
+            val_x=val_x,
+            val_y=val_y,
+            batch_ratio=0.05,
+            plot=True
+        )
+        results += [Counter(net.conduct_test(
+            val_x,
+            val_y,
+            figure_path='figures/kfold_{}{}'.format(timestamp, network.name)))]
+    aggregate_results = reduce(lambda x, y: x + y, results)
+
+    print ('\nFinal Cross validated results')
+    print ('-----------------------------')
+    for metric_key in aggregate_results.keys():
+        aggregate_results[metric_key] /= float(k)
+        print ('{}: {:.4f}'.format(metric_key, aggregate_results[metric_key]))
+
+    return aggregate_results

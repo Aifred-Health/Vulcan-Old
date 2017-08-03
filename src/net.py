@@ -10,11 +10,6 @@ import numpy as np
 
 import lasagne
 
-import matplotlib
-if "DISPLAY" not in os.environ:
-    matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
 import theano
 import theano.tensor as T
 
@@ -33,6 +28,11 @@ import json
 import cPickle as pickle
 
 from sklearn.utils import shuffle
+
+import matplotlib
+if "DISPLAY" not in os.environ:
+    matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 sys.setrecursionlimit(5000)
 
@@ -383,6 +383,7 @@ class Network(object):
             print ('Warning: Batch ratio too small. Changing to {:.5f}'.format
                    (batch_ratio))
         try:
+            plt.clf()
             for epoch in range(epochs):
                 epoch_time = time.time()
                 print ("--> Epoch: {} | Epochs left {}".format(
@@ -444,7 +445,7 @@ class Network(object):
 
                 if plot:
                     plt.ion()
-                    plt.figure()
+                    plt.figure(1)
                     display_record(record=self.record)
 
         except KeyboardInterrupt:
