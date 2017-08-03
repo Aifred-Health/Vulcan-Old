@@ -52,7 +52,7 @@ def display_receptive_fields(network, layer_list=None, top_k=5):
         feats = get_notable_indices(abs(field), top_k=top_k)
         feature_importance.update({'{}'.format(l.name): feats})
         plt.title(l.name)
-        plt.imshow(np.reshape(abs(field), field_shape), cmap='hot')
+        plt.imshow(np.reshape(abs(field), field_shape), cmap='hot_r')
         plt.colorbar()
     plt.show(False)
     return feature_importance
@@ -74,7 +74,7 @@ def display_saliency_overlay(image, saliency_map, shape=(28, 28)):
     fig.add_subplot(1, 2, 2)
     plt.imshow(np.reshape(image, shape), cmap='binary')
     plt.imshow(np.reshape(abs(saliency_map), shape),
-               cmap=plt.cm.hot, alpha=0.7)
+               cmap='hot_r', alpha=0.7)
     plt.colorbar()
     plt.show(False)
 
