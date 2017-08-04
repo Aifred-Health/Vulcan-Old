@@ -52,7 +52,7 @@ dense_net = Network(
 )
 
 dense_net.train(
-    epochs=6,
+    epochs=3,
     train_x=train_images[:50000],
     train_y=train_labels[:50000],
     val_x=train_images[50000:60000],

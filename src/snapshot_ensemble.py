@@ -118,7 +118,7 @@ class Snapshot(object):
         else:
             return raw_prediction
 
-    def save_ensemble(self, save_path='models'):
+    def save_model(self, save_path='models'):
         """Save all ensembled networks in a folder with ensemble name."""
         ensemble_path = "{}{}".format(self.timestamp, self.name)
         new_save_path = os.path.join(save_path, ensemble_path)
@@ -132,7 +132,7 @@ class Snapshot(object):
         self.save_ensemble_metadata(new_save_path)
 
     @classmethod
-    def load_ensemble(cls, ensemble_path):
+    def load_model(cls, ensemble_path):
         """Load up ensembled models given a folder location."""
         json_file = "{}_metadata.json".format(
             os.path.join(ensemble_path, os.path.basename(ensemble_path))
@@ -149,9 +149,7 @@ class Snapshot(object):
         snap = Snapshot(
             name='snap1',
             template_network=networks[0],
-            n_snapshots=config[ensemble_path]['n_snapshots'],
-            n_epochs=config[ensemble_path]['n_epochs'],
-            batch_ratio=config[ensemble_path]['batch_ratio']
+            n_snapshots=config[ensemble_path]['n_snapshots']
         )
         snap.networks = networks
         return snap
@@ -166,9 +164,7 @@ class Snapshot(object):
         config = {
             "{}".format(file_path): {
                 "n_snapshots": self.M,
-                "n_epochs": self.T,
                 "init_learning_rate": self.template_network.init_learning_rate,
-                "batch_ratio": self.batch_ratio,
                 "networks": [{n.name: n.save_name} for n in self.networks]
             }
         }

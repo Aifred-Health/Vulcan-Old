@@ -52,4 +52,4 @@ ensemble_dense.train(
 
 # ensemble_dense = Snapshot.load_ensemble('models/20170713183810_snap1')
 run_test(ensemble_dense, test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
-ensemble_dense.save_ensemble()
+ensemble_dense.save_model()

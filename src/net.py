@@ -64,6 +64,7 @@ class Network(object):
         self.name = name
         self.layers = []
         self.cost = None
+        self.val_cost = None
         self.input_dimensions = dimensions
         self.units = units
         self.dropouts = dropouts
@@ -317,17 +318,18 @@ class Network(object):
             deterministic=True
         )
         # check how much error in prediction
-        if self.num_classes is None or self.num_classes == 0:
-            val_loss = self.mse_loss(val_prediction, self.y)
-        else:
-            val_loss = self.cross_entropy_loss(val_prediction, self.y)
-
-        # check the accuracy of the prediction
-        val_acc = T.mean(T.eq(T.argmax(val_prediction, axis=1),
-                              T.argmax(self.y, axis=1)),
-                         dtype=theano.config.floatX)
-
-        return theano.function([self.input_var, self.y], [val_loss, val_acc])
+        if self.val_cost is None:
+            if self.num_classes is None or self.num_classes == 0:
+                self.val_cost = self.mse_loss(val_prediction, self.y)
+                val_acc = T.constant(0)
+            else:
+                self.val_cost = self.cross_entropy_loss(val_prediction, self.y)
+                # check the accuracy of the prediction
+                val_acc = T.mean(T.eq(T.argmax(val_prediction, axis=1),
+                                 T.argmax(self.y, axis=1)),
+                                 dtype=theano.config.floatX)
+        return theano.function([self.input_var, self.y],
+                               [self.val_cost, val_acc])
 
     def forward_pass(self, input_data, convert_to_class=False):
         """
@@ -384,9 +386,9 @@ class Network(object):
             fig_number = plt.gcf().number + 1 if plt.fignum_exists(1) else 1
             for epoch in range(epochs):
                 epoch_time = time.time()
-                print ("--> Epoch: {} | Epochs left {}".format(
+                print ("--> Epoch: {}/{}".format(
                     epoch,
-                    epochs - epoch - 1
+                    epochs - 1
                 ))
 
                 train_x, train_y = shuffle(train_x, train_y, random_state=0)

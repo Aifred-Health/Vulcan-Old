@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 from sklearn.metrics import confusion_matrix
+from sklearn.preprocessing import LabelBinarizer
 
 
 def display_receptive_fields(network, layer_list=None, top_k=5):
@@ -170,25 +171,16 @@ def get_one_hot(in_matrix):
     Returns: a one-hot matrix representing the categorized matrix
     """
     if in_matrix.dtype.name == 'category':
-        num_classes = len(in_matrix.cat.categories)
         custum_array = in_matrix.cat.codes
 
     elif isinstance(in_matrix, np.ndarray):
-        num_classes = len(np.unique(in_matrix))
         custum_array = in_matrix
 
     else:
-        print("Warning: Input matrix cannot be converted")
-        num_classes = 0
-        custum_array = []
-        return
+        raise ValueError("Input matrix cannot be converted.")
 
-    temp = np.zeros(shape=(1, num_classes), dtype='float32')
-    for i in np.array(custum_array):
-        row = np.zeros((1, num_classes))
-        row[0, i] = 1.0
-        temp = np.concatenate((temp, row), axis=0)
-    return np.array(temp[1:], dtype='float32')
+    lb = LabelBinarizer()
+    return np.array(lb.fit_transform(custum_array), dtype='float32')
 
 
 def get_class(in_matrix):
