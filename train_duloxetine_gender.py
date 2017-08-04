@@ -10,6 +10,8 @@ from src.net import Network
 
 from src.utils import get_one_hot
 
+from src.model_tests import run_test
+
 
 def main():
     """Open data and format for model training."""
@@ -107,7 +109,7 @@ def main():
     )
 
     # Use to run the test suite on the model
-    # dense_net.conduct_test(test_x=val_x, test_y=val_y)
+    # run_test(dense_net, test_x=val_x, test_y=val_y)
 
     # Use to save model parameters to disk
     # dense_net.save_model(save_path='models')

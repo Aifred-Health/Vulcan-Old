@@ -8,6 +8,8 @@ from src.utils import get_one_hot
 
 from src import mnist_loader
 
+from src.model_tests import run_test
+
 (train_images, train_labels, test_images, test_labels) = mnist_loader.load_mnist()
 
 train_labels = get_one_hot(train_labels)
@@ -59,7 +61,6 @@ dense_net.train(
     plot=True
 )
 
+run_test(dense_net, test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
 # saves all embedded networks too if they are not allready save
 dense_net.save_model()
-
-# dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])

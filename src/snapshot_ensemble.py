@@ -15,16 +15,13 @@ from utils import get_class
 
 from net import Network
 
-from model_tests import run_test
-
 import json
 
 
 class Snapshot(object):
     """Uses Network to build model snapshots."""
 
-    def __init__(self, name, template_network, n_snapshots, n_epochs,
-                 batch_ratio):
+    def __init__(self, name, template_network, n_snapshots):
         """
         Initialize snapshot ensemble given a network.
 
@@ -41,19 +38,12 @@ class Snapshot(object):
 
         self.num_classes = template_network.num_classes
 
-        self.batch_ratio = batch_ratio
         if n_snapshots <= 0:
             print('Number of Snapshots too small. Setting to 1.')
             self.M = 1
         else:
             self.M = n_snapshots
-        if n_epochs < self.M:
-            print('Number of epochs to small for number of Snapshots. '
-                  'Setting to {}.'.format(self.M))
-            self.n_epochs = self.M
-        else:
-            self.n_epochs = n_epochs
-        self.T = n_epochs / batch_ratio
+
         self.networks = []
 
     def cos_annealing(self, alpha, t):
@@ -70,12 +60,22 @@ class Snapshot(object):
         outer_cos = np.cos(inner_cos) + 1
         return float(alpha / 2 * outer_cos)
 
-    def train(self, train_x, train_y, val_x, val_y, plot):
+    def train(self, epochs, train_x, train_y, val_x, val_y,
+              batch_ratio=0.05, plot=True, change_rate=None):
         """
         Train each model for T/M epochs and sets new network learning rate.
 
         Collects each model in a class variable self.networks
         """
+        if epochs < self.M:
+            print('Number of epochs to small for number of Snapshots. '
+                  'Setting to {}.'.format(self.M))
+            self.n_epochs = self.M
+        else:
+            self.n_epochs = epochs
+        self.batch_ratio = batch_ratio
+        self.T = self.n_epochs / batch_ratio
+
         for i in range(self.M):
 
             self.template_network.train(
@@ -84,21 +84,12 @@ class Snapshot(object):
                 train_y=train_y,
                 val_x=val_x,
                 val_y=val_y,
-                batch_ratio=self.batch_ratio,
+                batch_ratio=batch_ratio,
                 plot=plot,
                 change_rate=self.cos_annealing
             )
             self.networks += [deepcopy(self.template_network)]
         self.timestamp = get_timestamp()
-
-    def conduct_test(self, test_x, test_y, figure_path='figures'):
-        """Will conduct the test suite to determine model strength."""
-        run_test(
-            network=self,
-            test_x=test_x,
-            test_y=test_y,
-            figure_path=figure_path
-        )
 
     def forward_pass(self, input_data, m=0, convert_to_class=False):
         """

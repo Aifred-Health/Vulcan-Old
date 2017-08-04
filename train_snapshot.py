@@ -10,6 +10,8 @@ from src.utils import get_one_hot
 
 from src import mnist_loader
 
+from src.model_tests import run_test
+
 (train_images, train_labels, test_images, test_labels) = mnist_loader.load_mnist()
 
 
@@ -34,20 +36,20 @@ dense_net = Network(
 ensemble_dense = Snapshot(
     name='snap_test',
     template_network=dense_net,
-    n_snapshots=2,
-    n_epochs=2,
-    batch_ratio=0.005
+    n_snapshots=2
 )
+
 ensemble_dense.train(
+    epochs=2,
     train_x=train_images[:50000],
     train_y=train_labels[:50000],
     val_x=train_images[50000:60000],
     val_y=train_labels[50000:60000],
+    batch_ratio=0.05,
     plot=True
 )
 
 
 # ensemble_dense = Snapshot.load_ensemble('models/20170713183810_snap1')
-ensemble_dense.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
+run_test(ensemble_dense, test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
 ensemble_dense.save_ensemble()
-# dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
