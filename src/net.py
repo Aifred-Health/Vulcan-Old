@@ -19,8 +19,6 @@ from utils import get_timestamp
 
 from selu import AlphaDropoutLayer
 
-from model_tests import run_test
-
 from ops import activations, optimizers
 
 import json
@@ -383,7 +381,7 @@ class Network(object):
             print ('Warning: Batch ratio too small. Changing to {:.5f}'.format
                    (batch_ratio))
         try:
-            plt.clf()
+            fig_number = plt.gcf().number + 1 if plt.fignum_exists(1) else 1
             for epoch in range(epochs):
                 epoch_time = time.time()
                 print ("--> Epoch: {} | Epochs left {}".format(
@@ -408,10 +406,11 @@ class Network(object):
 
                     if change_rate is not None:
                         if not callable(change_rate):
-                            print ('Parameter change_rate must be a function '
-                                   'that returns a new learning rate. '
-                                   'Learning rate remains unchanged.')
-                            return
+                            raise ValueError(
+                                'Parameter change_rate must be a function '
+                                'that returns a new learning rate. '
+                                'Learning rate remains unchanged.'
+                            )
                         # print ('Modifying learning rate from {}'.format(
                         #     self.learning_rate)
                         # ),
@@ -445,22 +444,13 @@ class Network(object):
 
                 if plot:
                     plt.ion()
-                    plt.figure(1)
+                    plt.figure(fig_number)
                     display_record(record=self.record)
 
         except KeyboardInterrupt:
             print ("\n\n**********Training stopped prematurely.**********\n\n")
         finally:
             self.timestamp = get_timestamp()
-
-    def conduct_test(self, test_x, test_y, figure_path='figures'):
-        """Will conduct the test suite to determine model strength."""
-        return run_test(
-            network=self,
-            test_x=test_x,
-            test_y=test_y,
-            figure_path=figure_path
-        )
 
     def __getstate__(self):
         """Pickle save config."""

@@ -10,6 +10,8 @@ from src.net import Network
 
 from src.utils import get_one_hot
 
+from src.model_tests import run_test
+
 
 def main():
     """Open data and format for model training."""
@@ -47,10 +49,10 @@ def main():
 
     # data = data[:, :5]
     # Used to shuffle matrices in unison
-    permutation = np.random.permutation(data.shape[0])
-    data = data[permutation]
-    train_id = train_id[permutation]
-    gender_data = gender_data[permutation]
+    # permutation = np.random.permutation(data.shape[0])
+    # data = data[permutation]
+    # train_id = train_id[permutation]
+    # gender_data = gender_data[permutation]
 
     train_x = data[:int(data.shape[0] * train_reserve)]
     val_x = data[int(data.shape[0] * train_reserve):]
@@ -60,23 +62,25 @@ def main():
     input_var = T.fmatrix('input')
     y = T.fmatrix('truth')
 
-
-
     dense_net = Network(
         name='3_dense',
         dimensions=(None, int(train_x.shape[1])),
         input_var=input_var,
         y=y,
-        units=[4096, 2048, 1024],
-        dropouts=[0.2, 0.2, 0.2],
+        units=[1024],
+        dropouts=[0.2],
         input_network=None,
-        num_classes=2
+        num_classes=2,
+        activation='rectify',
+        pred_activation='softmax',
+        optimizer='adam',
+        learning_rate=0.001
     )
 
-    
     # Use to load model from disk
     # dense_net.load_model(load_path='models/3_dense.npz')
-    dense_net.conduct_test(test_x=val_x, test_y=val_y)
+
+    run_test(dense_net, test_x=val_x, test_y=val_y)
     dense_net.train(
         epochs=5,
         train_x=train_x,
@@ -86,9 +90,9 @@ def main():
         batch_ratio=0.25,
         plot=True
     )
-    dense_net.conduct_test(test_x=val_x, test_y=val_y)
+    run_test(dense_net, test_x=val_x, test_y=val_y)
     # Use to run the test suite on the model
-    # dense_net.conduct_test(test_x=val_x, test_y=val_y)
+    # run_test(dense_net, test_x=val_x, test_y=val_y)
 
     # Use to save model parameters to disk
     # dense_net.save_model(save_path='models')

@@ -229,7 +229,8 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10):
             batch_ratio=0.05,
             plot=True
         )
-        results += [Counter(net.conduct_test(
+        results += [Counter(run_test(
+            net,
             val_x,
             val_y,
             figure_path='figures/kfold_{}{}'.format(timestamp, network.name)))]

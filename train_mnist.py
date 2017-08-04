@@ -8,6 +8,8 @@ from src.utils import get_one_hot
 
 from src import mnist_loader
 
+from src.model_tests import run_test
+
 (train_images, train_labels, test_images, test_labels) = mnist_loader.load_mnist()
 
 
@@ -43,7 +45,9 @@ dense_net.train(
     plot=True
 )
 
-# dense_net.save_record()
+# dense_net = Network.load_model('models/20170728172404_3_dense_test.network')
 
-dense_net.conduct_test(test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
+# # dense_net.save_record()
+
+run_test(dense_net, test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
 dense_net.save_model()
