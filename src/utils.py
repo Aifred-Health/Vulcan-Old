@@ -8,6 +8,8 @@ from math import sqrt, ceil, floor
 import theano
 import theano.tensor as T
 
+import lasagne
+
 import pickle
 
 import matplotlib.pyplot as plt
@@ -80,7 +82,7 @@ def display_saliency_overlay(image, saliency_map, shape=(28, 28)):
     plt.show(False)
 
 
-def get_saliency_map(network, input_data, truth):
+def get_saliency_map(network, input_data):
         """
         Calculate the saliency map for all input samples.
 
@@ -90,18 +92,19 @@ def get_saliency_map(network, input_data, truth):
         Args:
             network: Network type to get
             input_data: ndarray(2D), batch of samples
-            truth: ndarray(2D), batch of labels
 
         Returns saliency map for all given samples
         """
+        output = lasagne.layers.get_output(
+            network.layers[-2],
+            deterministic=True
+        )
+        max_out = T.max(output, axis=1)
         sal_fun = theano.function(
-            [network.input_var, network.y],
-            T.grad(network.cost, network.input_var)
+            [network.input_var],
+            T.grad(max_out.sum(), wrt=network.input_var)
         )
-        sal_map = sal_fun(
-            input_data,
-            truth
-        )
+        sal_map = sal_fun(input_data)
         if sal_map.shape != input_data.shape:
             raise ValueError('Shape mismatch')
         return sal_map
