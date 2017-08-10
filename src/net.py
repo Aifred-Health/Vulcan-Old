@@ -172,8 +172,8 @@ class Network(object):
         print ('\tHidden Layer:')
         for i, (num_units, prob_dropout) in enumerate(zip(units, dropouts)):
             if nonlinearity.__name__ == 'selu':
-                w = lasagne.init.Normal(np.sqrt(1.0 / num_units))
-                b = lasagne.init.Normal(np.sqrt(1.0 / num_units))
+                w = lasagne.init.Normal(std=np.sqrt(1.0 / num_units))
+                b = lasagne.init.Normal(std=0.0)
             else:
                 w = lasagne.init.GlorotUniform()
                 b = lasagne.init.Constant(0.)
