@@ -26,6 +26,7 @@ import json
 import cPickle as pickle
 
 from sklearn.utils import shuffle
+from sklearn.preprocessing import StandardScaler
 
 import matplotlib
 if "DISPLAY" not in os.environ:
@@ -352,6 +353,8 @@ class Network(object):
         Returns: Numpy matrix with the output probabilities
                  with each class unless otherwise specified.
         """
+        if self.activation == 'selu':
+            input_data = StandardScaler().fit_transform(input_data)
         if convert_to_class:
             return get_class(self.output(input_data))
         else:
@@ -386,6 +389,10 @@ class Network(object):
             validation_error=[],
             validation_accuracy=[]
         )
+        if self.activation == 'selu':
+            scaler = StandardScaler().fit(train_x)
+            train_x = scaler.transform(train_x)
+            val_x = scaler.transform(val_x)
 
         if train_x.shape[0] * batch_ratio < 1.0:
             batch_ratio = 1.0 / train_x.shape[0]
@@ -443,8 +450,8 @@ class Network(object):
                 epoch_time_spent = time.time() - epoch_time
                 print ("\n\terror: {} and accuracy: {} in {:.2f}s"
                        .format(
-                           train_error,
-                           train_accuracy,
+                           validation_error,
+                           validation_accuracy,
                            epoch_time_spent))
 
                 eta = epoch_time_spent * (epochs - epoch - 1)
