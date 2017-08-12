@@ -249,7 +249,7 @@ def display_record(record, load_path=None):
                         validation_accuracy],
                loc=0)
 
-    plt.show()
+    plt.show(False)
     plt.pause(0.0001)
 
 

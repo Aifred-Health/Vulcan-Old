@@ -26,7 +26,6 @@ import json
 import cPickle as pickle
 
 from sklearn.utils import shuffle
-from sklearn.preprocessing import StandardScaler
 
 import matplotlib
 if "DISPLAY" not in os.environ:
@@ -170,6 +169,12 @@ class Network(object):
                 self.input_network['network'].name,
                 self.name))
 
+        if nonlinearity.__name__ == 'selu':
+            network = lasagne.layers.BatchNormLayer(
+                incoming=network,
+                name="{}_batchnorm".format(self.name)
+            )
+
         print ('\tHidden Layer:')
         for i, (num_units, prob_dropout) in enumerate(zip(units, dropouts)):
             if nonlinearity.__name__ == 'selu':
@@ -200,7 +205,9 @@ class Network(object):
             self.layers.append(network)
 
             if nonlinearity.__name__ == 'selu':
-                network = AlphaDropoutLayer(incoming=network)
+                network = AlphaDropoutLayer(
+                    incoming=network,
+                    name="{}_alphadropout_{}".format(self.name, i))
             else:
                 network = lasagne.layers.DropoutLayer(
                     incoming=network,
@@ -353,8 +360,6 @@ class Network(object):
         Returns: Numpy matrix with the output probabilities
                  with each class unless otherwise specified.
         """
-        if self.activation == 'selu':
-            input_data = StandardScaler().fit_transform(input_data)
         if convert_to_class:
             return get_class(self.output(input_data))
         else:
@@ -389,10 +394,6 @@ class Network(object):
             validation_error=[],
             validation_accuracy=[]
         )
-        if self.activation == 'selu':
-            scaler = StandardScaler().fit(train_x)
-            train_x = scaler.transform(train_x)
-            val_x = scaler.transform(val_x)
 
         if train_x.shape[0] * batch_ratio < 1.0:
             batch_ratio = 1.0 / train_x.shape[0]
