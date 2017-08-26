@@ -109,18 +109,12 @@ class Network(object):
                         self.input_network.keys()
                     )
                 )
+        self.num_classes = num_classes
         self.network = self.create_dense_network(
             units=units,
             dropouts=dropouts,
             nonlinearity=activations[self.activation]
         )
-        self.num_classes = num_classes
-        if num_classes is not None and num_classes != 0:
-            self.network = self.create_classification_layer(
-                self.network,
-                num_classes=num_classes,
-                nonlinearity=activations[self.pred_activation]
-            )
         if self.y is not None:
             self.trainer = self.create_trainer()
             self.validator = self.create_validator()
@@ -148,8 +142,9 @@ class Network(object):
         Returns: the output of the network (linked up to all the layers)
         """
         if len(units) != len(dropouts):
-            print ("Cannot build network: units and dropouts don't correspond")
-            return
+            raise ValueError(
+                "Cannot build network: units and dropouts don't correspond"
+            )
 
         print ("Creating {} Network...".format(self.name))
         if self.input_network is None:
@@ -218,6 +213,12 @@ class Network(object):
             self.layers.append(network)
             print '\t\t', lasagne.layers.get_output_shape(network)
 
+        if self.num_classes is not None and self.num_classes != 0:
+            network = self.create_classification_layer(
+                network,
+                num_classes=self.num_classes,
+                nonlinearity=activations[self.pred_activation]
+            )
         return network
 
     def create_classification_layer(self, network, num_classes,

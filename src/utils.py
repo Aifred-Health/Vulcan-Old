@@ -12,6 +12,9 @@ import lasagne
 
 import pickle
 
+import matplotlib
+if "DISPLAY" not in os.environ:
+    matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from datetime import datetime
