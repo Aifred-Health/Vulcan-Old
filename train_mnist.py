@@ -10,7 +10,7 @@ from src import mnist_loader
 
 from src.model_tests import run_test
 
-(train_images, train_labels, test_images, test_labels) = mnist_loader.load_mnist()
+(train_images, train_labels, test_images, test_labels) = mnist_loader.load_fashion_mnist()
 
 
 train_labels = get_one_hot(train_labels)
