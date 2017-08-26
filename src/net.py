@@ -38,7 +38,7 @@ sys.setrecursionlimit(5000)
 class Network(object):
     """Class to generate networks and train them."""
 
-    def __init__(self, name, dimensions, input_var, y, units, dropouts,
+    def __init__(self, name, dimensions, input_var, y, config,
                  input_network=None, num_classes=None, activation='rectify',
                  pred_activation='softmax', optimizer='adam',
                  learning_rate=0.001):
@@ -66,8 +66,7 @@ class Network(object):
         self.cost = None
         self.val_cost = None
         self.input_dimensions = dimensions
-        self.units = units
-        self.dropouts = dropouts
+        self.config = config
         self.learning_rate = learning_rate
         self.init_learning_rate = learning_rate
         if not optimizers.get(optimizer, False):
@@ -110,9 +109,8 @@ class Network(object):
                     )
                 )
         self.num_classes = num_classes
-        self.network = self.create_dense_network(
-            units=units,
-            dropouts=dropouts,
+        self.network = self.create_network(
+            config=self.config,
             nonlinearity=activations[self.activation]
         )
         if self.y is not None:
@@ -128,6 +126,24 @@ class Network(object):
         except AttributeError:
             self.timestamp = get_timestamp()
         self.minibatch_iteration = 0
+
+    def create_network(self, config, nonlinearity):
+        """
+        Abstract functino to create any network given a config dict.
+
+        Args:
+            config: dict. the network configuration
+            nonlinearity: string. the nonlinearity to add onto each layer
+
+        returns a network.
+        """
+        mode = config.get('mode')
+        if mode == 'dense':
+            return self.create_dense_network(
+                units=config.get('units'),
+                dropouts=config.get('dropouts'),
+                nonlinearity=nonlinearity
+            )
 
     def create_dense_network(self, units, dropouts, nonlinearity):
         """
