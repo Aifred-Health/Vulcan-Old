@@ -139,10 +139,103 @@ class Network(object):
         """
         mode = config.get('mode')
         if mode == 'dense':
-            return self.create_dense_network(
+            network = self.create_dense_network(
                 units=config.get('units'),
                 dropouts=config.get('dropouts'),
                 nonlinearity=nonlinearity
+            )
+        elif mode == 'conv':
+            network = self.create_conv_network(
+                filters=config.get('filters'),
+                filter_size=config.get('filter_size'),
+                stride=config.get('stride'),
+                pool_mode=config['pool'].get('mode'),
+                pool_stride=config['pool'].get('stride'),
+                nonlinearity=nonlinearity
+            )
+        else:
+            raise ValueError('Mode {} not supported.'.format(mode))
+
+        if self.num_classes is not None and self.num_classes != 0:
+            network = self.create_classification_layer(
+                network,
+                num_classes=self.num_classes,
+                nonlinearity=activations[self.pred_activation]
+            )
+
+        return network
+
+    def create_conv_network(self, filters, filter_size, stride,
+                            pool_mode, pool_stride, nonlinearity):
+        """
+        Create a convolutional network (1D, 2D, or 3D).
+
+        Returns a conv network
+        """
+        conv_dim = len(filter_size[0])
+        # TODO
+        # Do checks for compatible filter_sizes and stride
+        print ("Creating {} Network...".format(self.name))
+        if self.input_network is None:
+            print ('\tInput Layer:')
+            network = lasagne.layers.InputLayer(shape=self.input_dimensions,
+                                                input_var=self.input_var,
+                                                name="{}_input".format(
+                                                     self.name))
+            print '\t\t', lasagne.layers.get_output_shape(network)
+            self.layers.append(network)
+        else:
+            network = self.input_network['network']. \
+                layers[self.input_network['layer']]
+
+            print ('Appending layer {} from {} to {}'.format(
+                self.input_network['layer'],
+                self.input_network['network'].name,
+                self.name))
+
+        if conv_dim == 1:
+            ConvLayer = lasagne.layers.Conv1DLayer
+            Pool = lasagne.layers.Pool1DLayer
+        elif conv_dim == 2:
+            ConvLayer = lasagne.layers.Conv2DLayer
+            Pool = lasagne.layers.Pool2DLayer
+        elif conv_dim == 3:
+            ConvLayer = lasagne.layers.Conv3DLayer
+            Pool = lasagne.layers.Pool3DLayer
+
+        print ('\tHidden Layer:')
+        for i, (f, f_size, s, p_s) in enumerate(zip(filters,
+                                                    filter_size,
+                                                    stride,
+                                                    pool_stride)):
+            network = ConvLayer(
+                incoming=network,
+                num_filters=f,
+                filter_size=f_size,
+                stride=s,
+                pad='same',
+                nonlinearity=nonlinearity,
+                name="{}_conv{}".format(
+                     self.name, conv_dim)
+            )
+            network.add_param(
+                network.W,
+                network.W.get_value().shape,
+                **{self.name: True}
+            )
+            network.add_param(
+                network.b,
+                network.b.get_value().shape,
+                **{self.name: True}
+            )
+            self.layers.append(network)
+
+            network = Pool(
+                incoming=network,
+                pool_size=p_s,
+                mode=pool_mode,
+                name="{}_{}pool".format(
+                     self.name, pool_mode)
             )
 
     def create_dense_network(self, units, dropouts, nonlinearity):
@@ -228,13 +321,6 @@ class Network(object):
 
             self.layers.append(network)
             print '\t\t', lasagne.layers.get_output_shape(network)
-
-        if self.num_classes is not None and self.num_classes != 0:
-            network = self.create_classification_layer(
-                network,
-                num_classes=self.num_classes,
-                nonlinearity=activations[self.pred_activation]
-            )
         return network
 
     def create_classification_layer(self, network, num_classes,
