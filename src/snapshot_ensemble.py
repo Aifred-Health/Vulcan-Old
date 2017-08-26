@@ -175,3 +175,14 @@ class Snapshot(object):
         print ('Saving metadata to {}'.format(json_file))
         with open(json_file, 'w') as file:
             json.dump(config, file)
+
+    def save_record(self, save_path='records'):
+        """Save individual training curves for all networks."""
+        ensemble_path = "{}{}".format(self.timestamp, self.name)
+        new_save_path = os.path.join(save_path, ensemble_path)
+        if not os.path.exists(new_save_path):
+            print ('Creating {} folder'.format(new_save_path))
+            os.makedirs(new_save_path)
+
+        for model in self.networks:
+            model.save_record(save_path=new_save_path)

@@ -201,7 +201,7 @@ def get_class(in_matrix):
     return np.expand_dims(np.argmax(in_matrix, axis=1), axis=1)
 
 
-def display_record(record, load_path=None):
+def display_record(record=None, load_path=None):
     """
     Display the training curve for a network training session.
 
@@ -217,6 +217,9 @@ def display_record(record, load_path=None):
         )
     else:
         plt.title('Training curve')
+
+    if record is None or not isinstance(record, dict):
+        raise ValueError('No record exists and cannot be displayed.')
 
     train_error, = plt.plot(
         record['epoch'],
