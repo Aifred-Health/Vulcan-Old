@@ -21,7 +21,7 @@ if "DISPLAY" not in os.environ:
 import matplotlib.pyplot as plt
 
 
-def run_test(network, test_x, test_y, figure_path='figures', plot_roc=False):
+def run_test(network, test_x, test_y, figure_path='figures', plot=True):
     """
     Will conduct the test suite to determine model strength.
 
@@ -29,7 +29,7 @@ def run_test(network, test_x, test_y, figure_path='figures', plot_roc=False):
         test_x: data the model has not yet seen to predict
         test_y: corresponding truth vectors
         figure_path: string, folder to place images in.
-        plot_roc: bool, determines if roc should be plotted when ran.
+        plot: bool, determines if graphs should be plotted when ran.
     """
     if network.num_classes is None or network.num_classes == 0:
         raise ValueError('There\'s no classification layer')
@@ -143,24 +143,31 @@ def run_test(network, test_x, test_y, figure_path='figures', plot_roc=False):
         figure_path,
         network.timestamp,
         network.name))
+    if not plot:
+        plt.close()
 
     all_class_auc = metrics.roc_auc_score(
         get_one_hot(test_y),
         get_one_hot(class_prediction),
         average=None
     )
-    plt.figure()
+    if not isinstance(all_class_auc, np.ndarray):
+        all_class_auc = [all_class_auc]
+    fig = plt.figure()
     for i in range(network.num_classes):
-
-        fpr, tpr, thresholds = metrics.roc_curve(test_y,
-                                                 raw_prediction[:, i],
-                                                 pos_label=i)
+        if network.num_classes == 1:
+            fpr, tpr, thresholds = metrics.roc_curve(test_y,
+                                                     raw_prediction,
+                                                     pos_label=1)
+        else:
+            fpr, tpr, thresholds = metrics.roc_curve(test_y,
+                                                     raw_prediction[:, i],
+                                                     pos_label=i)
         auc = all_class_auc[i]
         # print ('AUC: {:.4f}'.format(auc))
         # print ('\tGenerating ROC {}/{}{}/{}.png ...'.format(figure_path,
         #                                                     network.timestamp,
         #                                                     network.name, i))
-
         plt.clf()
         plt.plot(fpr, tpr, label=("AUC: {:.4f}".format(auc)))
         plt.title("ROC Curve for {}_{}".format(network.name, i))
@@ -169,12 +176,15 @@ def run_test(network, test_x, test_y, figure_path='figures', plot_roc=False):
         plt.legend(loc='lower right')
         plt.ylim(0.0, 1.0)
         plt.xlim(0.0, 1.0)
-        if plot_roc:
-            plt.show()
 
         plt.savefig('{}/{}{}/{}.png'.format(figure_path,
                                             network.timestamp,
                                             network.name, i))
+        if plot:
+            plt.show()
+
+    if not plot:
+        plt.close(fig.number)
     print ('Average AUC: : {:.4f}'.format(np.average(all_class_auc)))
     return {
         'accuracy': accuracy,
@@ -188,7 +198,8 @@ def run_test(network, test_x, test_y, figure_path='figures', plot_roc=False):
     }
 
 
-def k_fold_validation(network, train_x, train_y, k=5, epochs=10):
+def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
+                      plot=False):
     """
     Conduct k fold cross validation on a network.
 
@@ -227,13 +238,14 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10):
             val_x=val_x,
             val_y=val_y,
             batch_ratio=0.05,
-            plot=True
+            plot=plot
         )
         results += [Counter(run_test(
             net,
             val_x,
             val_y,
-            figure_path='figures/kfold_{}{}'.format(timestamp, network.name)))]
+            figure_path='figures/kfold_{}{}'.format(timestamp, network.name),
+            plot=plot))]
     aggregate_results = reduce(lambda x, y: x + y, results)
 
     print ('\nFinal Cross validated results')

@@ -1,10 +1,8 @@
 import numpy as np
 
-import theano.tensor as T
-
 from src.net import Network
 
-from src.snapshot_ensemble import Snapshot
+import theano.tensor as T
 
 from src.utils import get_one_hot
 
@@ -12,14 +10,16 @@ from src import mnist_loader
 
 from src.model_tests import run_test
 
+from src.utils import display_tsne
+
 (train_images, train_labels, test_images, test_labels) = mnist_loader.load_mnist()
-train_images = np.reshape(train_images, (train_images.shape[0], 28, 28))
-test_images = np.reshape(test_images, (test_images.shape[0], 28, 28))
+
+display_tsne(train_images[:1000], train_labels[:1000])
 
 train_labels = get_one_hot(train_labels)
 
-input_var = T.fmatrix('input')
-y = T.fmatrix('truth')
+train_images = np.reshape(train_images, (train_images.shape[0], 28, 28))
+test_images = np.reshape(test_images, (test_images.shape[0], 28, 28))
 
 input_var = T.tensor4('input')
 y = T.fmatrix('truth')
@@ -47,16 +47,11 @@ conv_net = Network(
     pred_activation='softmax',
     optimizer='adam')
 
-ensemble_dense = Snapshot(
-    name='snap_test',
-    template_network=conv_net,
-    n_snapshots=2
-)
-
 train_images = np.expand_dims(train_images, axis=1)
 test_images = np.expand_dims(test_images, axis=1)
-
-ensemble_dense.train(
+# # Use to load model from disk
+# # dense_net = Network.load_model('models/20170704194033_3_dense_test.network')
+conv_net.train(
     epochs=2,
     train_x=train_images[:50000],
     train_y=train_labels[:50000],
@@ -66,6 +61,7 @@ ensemble_dense.train(
     plot=True
 )
 
-# ensemble_dense = Snapshot.load_ensemble('models/20170713183810_snap1')
-run_test(ensemble_dense, test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
-ensemble_dense.save_model()
+conv_net.save_record()
+
+run_test(conv_net, test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
+conv_net.save_model()
