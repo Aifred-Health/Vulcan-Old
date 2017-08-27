@@ -65,26 +65,37 @@ def main():
     srng = RandomStreams(seed=234)
     z = srng.uniform((10, 32))
 
+    generator_config = {
+        'mode': 'dense',
+        'units': [4096, 2048, 784],
+        'dropouts': [0.5, 0.5, 0.5],
+    }
+
     generator = Network(
         name='generator',
         dimensions=(None, 32),
         input_var=z,
         y=None,
-        units=[4096, 2048, 784],
-        dropouts=[0.5, 0.5, 0.5],
+        config=generator_config,
         input_network=None,
         num_classes=None
     )
+
+    discriminator_config = {
+        'mode': 'dense',
+        'units': [4096, 2048, 784],
+        'dropouts': [0.5, 0.5, 0.5],
+    }
 
     discriminator = Network(
         name='discriminator',
         dimensions=(None, 784),
         input_var=None,
         y=None,
-        units=[4096, 2048, 1024],
-        dropouts=[0.5, 0.5, 0.5],
-        input_network=generator.network,
-        num_classes=1
+        config=discriminator_config,
+        input_network={'network': generator, 'layer': 6},
+        num_classes=1,
+        pred_activation='sigmoid'
     )
 
     g_x = lasagne.layers.get_output(generator.layers)[-1]
