@@ -13,48 +13,38 @@ from src import mnist_loader
 from src.model_tests import run_test
 
 (train_images, train_labels, test_images, test_labels) = mnist_loader.load_mnist()
-train_images = np.reshape(train_images, (train_images.shape[0], 28, 28))
-test_images = np.reshape(test_images, (test_images.shape[0], 28, 28))
+
 
 train_labels = get_one_hot(train_labels)
 
 input_var = T.fmatrix('input')
 y = T.fmatrix('truth')
 
-input_var = T.tensor4('input')
-y = T.fmatrix('truth')
-
-network_conv_config = {
-    'mode': 'conv',
-    'filters': [10, 5],
-    'filter_size': [[3, 3], [5, 5]],
-    'stride': [[1, 1], [1, 1]],
-    'pool': {
-        'mode': 'max',
-        'stride': [[2, 2], [2, 2]]
-    }
+network_dense_config = {
+    'mode': 'dense',
+    'units': [256],
+    'dropouts': [0.5],
 }
 
-conv_net = Network(
-    name='conv_test',
-    dimensions=[None, 1] + list(train_images.shape[1:]),
+dense_net = Network(
+    name='3_dense',
+    dimensions=(None, int(train_images.shape[1])),
     input_var=input_var,
     y=y,
-    config=network_conv_config,
+    config=network_dense_config,
     input_network=None,
     num_classes=10,
-    activation='rectify',
+    activation='selu',
     pred_activation='softmax',
-    optimizer='adam')
+    optimizer='adam',
+    learning_rate=0.01
+)
 
 ensemble_dense = Snapshot(
     name='snap_test',
-    template_network=conv_net,
+    template_network=dense_net,
     n_snapshots=2
 )
-
-train_images = np.expand_dims(train_images, axis=1)
-test_images = np.expand_dims(test_images, axis=1)
 
 ensemble_dense.train(
     epochs=2,
