@@ -20,16 +20,23 @@ train_labels = get_one_hot(train_labels)
 input_var = T.fmatrix('input')
 y = T.fmatrix('truth')
 
+network_dense_config = {
+    'mode': 'dense',
+    'units': [256],
+    'dropouts': [0.5],
+}
+
 dense_net = Network(
-    name='3_dense_test',
+    name='3_dense',
     dimensions=(None, int(train_images.shape[1])),
     input_var=input_var,
     y=y,
-    units=[784, 784],
-    dropouts=[0.2, 0.2],
+    config=network_dense_config,
     input_network=None,
     num_classes=10,
-    activation='rectify',
+    activation='selu',
+    pred_activation='softmax',
+    optimizer='adam',
     learning_rate=0.01
 )
 
@@ -48,7 +55,6 @@ ensemble_dense.train(
     batch_ratio=0.05,
     plot=True
 )
-
 
 # ensemble_dense = Snapshot.load_ensemble('models/20170713183810_snap1')
 run_test(ensemble_dense, test_x=train_images[50000:60000], test_y=train_labels[50000:60000])

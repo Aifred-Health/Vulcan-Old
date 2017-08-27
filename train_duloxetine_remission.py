@@ -60,29 +60,45 @@ def main():
     data = data.astype('float32')
     data = np.array(data)
 
+    from sklearn.decomposition import PCA
+    pca = PCA()
+
+    data = pca.fit_transform(data)
+    data = data.astype('float32')
+
     # Used to shuffle matrices in unison
-    permutation = np.random.permutation(data.shape[0])
-    data = data[permutation]
-    train_id = train_id[permutation]
-    remission_data = remission_data[permutation]
+    # permutation = np.random.permutation(data.shape[0])
+    # data = data[permutation]
+    # train_id = train_id[permutation]
+    # remission_data = remission_data[permutation]
 
     train_x = data[:int(data.shape[0] * train_reserve)]
     val_x = data[int(data.shape[0] * train_reserve):]
     train_y = remission_data[:int(remission_data.shape[0] * train_reserve)]
     val_y = remission_data[int(remission_data.shape[0] * train_reserve):]
 
+    from src.utils import display_tsne
+
+    display_tsne(data, remission_data[:, 0], label_map={'0.0': 'male', '1.0': 'female'})
+
     input_var = T.fmatrix('input')
     y = T.fmatrix('truth')
+
+    network_dense_config = {
+        'mode': 'dense',
+        'units': [256],
+        'dropouts': [0.5],
+    }
 
     dense_net = Network(
         name='3_dense',
         dimensions=(None, int(train_x.shape[1])),
         input_var=input_var,
         y=y,
-        units=[4096, 2048, 1024],
-        dropouts=[0.5, 0.5, 0.5],
+        config=network_dense_config,
         input_network=None,
-        num_classes=2
+        num_classes=1,
+        pred_activation='sigmoid'
     )
 
     # Use to load model from disk

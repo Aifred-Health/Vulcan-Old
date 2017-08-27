@@ -38,7 +38,7 @@ sys.setrecursionlimit(5000)
 class Network(object):
     """Class to generate networks and train them."""
 
-    def __init__(self, name, dimensions, input_var, y, units, dropouts,
+    def __init__(self, name, dimensions, input_var, y, config,
                  input_network=None, num_classes=None, activation='rectify',
                  pred_activation='softmax', optimizer='adam',
                  learning_rate=0.001):
@@ -66,8 +66,7 @@ class Network(object):
         self.cost = None
         self.val_cost = None
         self.input_dimensions = dimensions
-        self.units = units
-        self.dropouts = dropouts
+        self.config = config
         self.learning_rate = learning_rate
         self.init_learning_rate = learning_rate
         if not optimizers.get(optimizer, False):
@@ -110,9 +109,8 @@ class Network(object):
                     )
                 )
         self.num_classes = num_classes
-        self.network = self.create_dense_network(
-            units=units,
-            dropouts=dropouts,
+        self.network = self.create_network(
+            config=self.config,
             nonlinearity=activations[self.activation]
         )
         if self.y is not None:
@@ -128,6 +126,140 @@ class Network(object):
         except AttributeError:
             self.timestamp = get_timestamp()
         self.minibatch_iteration = 0
+
+    def create_network(self, config, nonlinearity):
+        """
+        Abstract functino to create any network given a config dict.
+
+        Args:
+            config: dict. the network configuration
+            nonlinearity: string. the nonlinearity to add onto each layer
+
+        returns a network.
+        """
+        mode = config.get('mode')
+        if mode == 'dense':
+            network = self.create_dense_network(
+                units=config.get('units'),
+                dropouts=config.get('dropouts'),
+                nonlinearity=nonlinearity
+            )
+        elif mode == 'conv':
+            network = self.create_conv_network(
+                filters=config.get('filters'),
+                filter_size=config.get('filter_size'),
+                stride=config.get('stride'),
+                pool_mode=config['pool'].get('mode'),
+                pool_stride=config['pool'].get('stride'),
+                nonlinearity=nonlinearity
+            )
+        else:
+            raise ValueError('Mode {} not supported.'.format(mode))
+
+        if self.num_classes is not None and self.num_classes != 0:
+            network = self.create_classification_layer(
+                network,
+                num_classes=self.num_classes,
+                nonlinearity=activations[self.pred_activation]
+            )
+
+        return network
+
+    def create_conv_network(self, filters, filter_size, stride,
+                            pool_mode, pool_stride, nonlinearity):
+        """
+        Create a convolutional network (1D, 2D, or 3D).
+
+        Args:
+            filters: list of int. number of kernels per layer
+            filter_size: list of int list. size of kernels per layer
+            stride: list of int list. stride of kernels
+            pool_mode: string. pooling operation
+            pool_stride: list of int list. down_scaling factor
+            nonlinearity: string. nonlinearity to use for each layer
+
+        Returns a conv network
+        """
+        conv_dim = len(filter_size[0])
+        lasagne_pools = ['max', 'average_inc_pad', 'average_exc_pad']
+        if not all(len(f) == conv_dim for f in filter_size):
+            raise ValueError('Each tuple in filter_size {} must have a '
+                             'length of {}'.format(filter_size, conv_dim))
+        if not all(len(s) == conv_dim for s in stride):
+            raise ValueError('Each tuple in stride {} must have a '
+                             'length of {}'.format(stride, conv_dim))
+        if not all(len(p) == conv_dim for p in pool_stride):
+            raise ValueError('Each tuple in pool_stride {} must have a '
+                             'length of {}'.format(pool_stride, conv_dim))
+        if pool_mode not in lasagne_pools:
+            raise ValueError('{} pooling does not exist. '
+                             'Please use one from: {}'.format(lasagne_pools))
+
+        print ("Creating {} Network...".format(self.name))
+        if self.input_network is None:
+            print ('\tInput Layer:')
+            network = lasagne.layers.InputLayer(shape=self.input_dimensions,
+                                                input_var=self.input_var,
+                                                name="{}_input".format(
+                                                     self.name))
+            print '\t\t', lasagne.layers.get_output_shape(network)
+            self.layers.append(network)
+        else:
+            network = self.input_network['network']. \
+                layers[self.input_network['layer']]
+
+            print ('Appending layer {} from {} to {}'.format(
+                self.input_network['layer'],
+                self.input_network['network'].name,
+                self.name))
+
+        if conv_dim == 1:
+            conv_layer = lasagne.layers.Conv1DLayer
+            pool = lasagne.layers.Pool1DLayer
+        elif conv_dim == 2:
+            conv_layer = lasagne.layers.Conv2DLayer
+            pool = lasagne.layers.Pool2DLayer
+        elif conv_dim == 3:
+            conv_layer = lasagne.layers.Conv3DLayer
+            pool = lasagne.layers.Pool3DLayer
+
+        print ('\tHidden Layer:')
+        for i, (f, f_size, s, p_s) in enumerate(zip(filters,
+                                                    filter_size,
+                                                    stride,
+                                                    pool_stride)):
+            network = conv_layer(
+                incoming=network,
+                num_filters=f,
+                filter_size=f_size,
+                stride=s,
+                pad='same',
+                nonlinearity=nonlinearity,
+                name="{}_conv{}".format(
+                     self.name, conv_dim)
+            )
+            network.add_param(
+                network.W,
+                network.W.get_value().shape,
+                **{self.name: True}
+            )
+            network.add_param(
+                network.b,
+                network.b.get_value().shape,
+                **{self.name: True}
+            )
+            self.layers.append(network)
+            print '\t\t', lasagne.layers.get_output_shape(network)
+            network = pool(
+                incoming=network,
+                pool_size=p_s,
+                mode=pool_mode,
+                name="{}_{}pool".format(
+                     self.name, pool_mode)
+            )
+            self.layers.append(network)
+            print '\t\t', lasagne.layers.get_output_shape(network)
+        return network
 
     def create_dense_network(self, units, dropouts, nonlinearity):
         """
@@ -212,13 +344,6 @@ class Network(object):
 
             self.layers.append(network)
             print '\t\t', lasagne.layers.get_output_shape(network)
-
-        if self.num_classes is not None and self.num_classes != 0:
-            network = self.create_classification_layer(
-                network,
-                num_classes=self.num_classes,
-                nonlinearity=activations[self.pred_activation]
-            )
         return network
 
     def create_classification_layer(self, network, num_classes,
@@ -343,9 +468,16 @@ class Network(object):
             else:
                 self.val_cost = self.cross_entropy_loss(val_prediction, self.y)
                 # check the accuracy of the prediction
-                val_acc = T.mean(T.eq(T.argmax(val_prediction, axis=1),
-                                 T.argmax(self.y, axis=1)),
-                                 dtype=theano.config.floatX)
+                if self.num_classes > 1:
+                    val_acc = T.mean(T.eq(T.argmax(val_prediction, axis=1),
+                                     T.argmax(self.y, axis=1)),
+                                     dtype=theano.config.floatX)
+                elif self.num_classes == 1:
+                    val_acc = T.mean(T.eq(T.round(val_prediction,
+                                                  mode='half_away_from_zero'),
+                                          self.y),
+                                     dtype=theano.config.floatX)
+
         return theano.function([self.input_var, self.y],
                                [self.val_cost, val_acc])
 
@@ -450,10 +582,17 @@ class Network(object):
                 self.record['validation_error'].append(validation_error)
                 self.record['validation_accuracy'].append(validation_accuracy)
                 epoch_time_spent = time.time() - epoch_time
-                print ("\n\terror: {} and accuracy: {} in {:.2f}s"
+                print ("\n\ttrain error: {:.6f} |"
+                       " train accuracy: {:.6f} in {:.2f}s"
                        .format(
-                           validation_error,
-                           validation_accuracy,
+                           float(train_error),
+                           float(train_accuracy),
+                           epoch_time_spent))
+                print ("\tvalid error: {:.6f} |"
+                       " valid accuracy: {:.6f} in {:.2f}s"
+                       .format(
+                           float(validation_error),
+                           float(validation_accuracy),
                            epoch_time_spent))
 
                 eta = epoch_time_spent * (epochs - epoch - 1)
@@ -503,15 +642,23 @@ class Network(object):
             self.input_network = {'network': input_network,
                                   'layer': params[3]}
         else:
-            self.input_var = T.matrix('input')
+            tensor_size = len(self.input_dimensions)
+
+            if tensor_size == 2:
+                self.input_var = T.matrix('input')
+            elif tensor_size == 3:
+                self.input_var = T.tensor3('input')
+            elif tensor_size == 4:
+                self.input_var = T.tensor4('input')
+            elif tensor_size == 5:
+                self.input_var = T.tensor5('input')
 
         self.y = T.matrix('truth')
         self.__init__(self.__dict__['name'],
                       self.__dict__['input_dimensions'],
                       self.__dict__['input_var'],
                       self.__dict__['y'],
-                      self.__dict__['units'],
-                      self.__dict__['dropouts'],
+                      self.__dict__['config'],
                       self.__dict__['input_network'],
                       self.__dict__['num_classes'],
                       self.__dict__['activation'],
@@ -591,8 +738,7 @@ class Network(object):
                 "input_dimensions": self.input_dimensions,
                 "input_var": "{}".format(self.input_var.type),
                 "y": "{}".format(self.y.type),
-                "units": self.units,
-                "dropouts": self.dropouts,
+                "config": self.config,
                 "num_classes": self.num_classes,
                 "input_network": {
                     'network': None,

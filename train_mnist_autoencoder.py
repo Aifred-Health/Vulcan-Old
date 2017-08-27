@@ -17,13 +17,18 @@ train_labels = get_one_hot(train_labels)
 input_var = T.fmatrix('input')
 y = T.fmatrix('truth')
 
+network_auto_config = {
+    'mode': 'dense',
+    'units': [784, 392, 784],
+    'dropouts': [0.2, 0.2, 0.2],
+}
+
 autoencoder = Network(
     name='autoencoder_mnist',
     dimensions=(None, int(train_images.shape[1])),
     input_var=input_var,
     y=y,
-    units=[784, 392, 784],
-    dropouts=[0.2, 0.2, 0.2],
+    config=network_auto_config,
     input_network=None,
     num_classes=None
 )
@@ -40,13 +45,18 @@ autoencoder.train(
     plot=True
 )
 
+network_dense_config = {
+    'mode': 'dense',
+    'units': [1024, 1024, 784],
+    'dropouts': [0.2, 0.2, 0.2],
+}
+
 dense_net = Network(
     name='3_dense',
     dimensions=(None, int(train_images.shape[1])),
     input_var=input_var,
     y=y,
-    units=[4096, 1024, 784],
-    dropouts=[0.2, 0.2, 0.2],
+    config=network_dense_config,
     input_network={'network': autoencoder, 'layer': 4},
     num_classes=10
 )

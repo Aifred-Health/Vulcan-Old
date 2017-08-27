@@ -50,10 +50,10 @@ def main():
     data = np.array(data)
 
     # Used to shuffle matrices in unison
-    permutation = np.random.permutation(data.shape[0])
-    data = data[permutation]
-    train_id = train_id[permutation]
-    remission_data = remission_data[permutation]
+    # permutation = np.random.permutation(data.shape[0])
+    # data = data[permutation]
+    # train_id = train_id[permutation]
+    # remission_data = remission_data[permutation]
 
     train_x = data[:int(data.shape[0] * train_reserve)]
     val_x = data[int(data.shape[0] * train_reserve):]
@@ -63,15 +63,21 @@ def main():
     input_var = T.fmatrix('input')
     y = T.fmatrix('truth')
 
+    network_dense_config = {
+        'mode': 'dense',
+        'units': [256],
+        'dropouts': [0.5],
+    }
+
     dense_net = Network(
         name='3_dense',
         dimensions=(None, int(train_x.shape[1])),
         input_var=input_var,
         y=y,
-        units=[4096, 2048, 1024],
-        dropouts=[0.5, 0.5, 0.5],
+        config=network_dense_config,
         input_network=None,
-        num_classes=2
+        num_classes=1,
+        pred_activation='sigmoid'
     )
 
     # Use to load model from disk

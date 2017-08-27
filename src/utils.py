@@ -12,15 +12,42 @@ import lasagne
 
 import pickle
 
+from datetime import datetime
+
+from sklearn.metrics import confusion_matrix
+from sklearn.preprocessing import LabelBinarizer
+from sklearn.manifold import TSNE
+
 import matplotlib
 if "DISPLAY" not in os.environ:
     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-from datetime import datetime
 
-from sklearn.metrics import confusion_matrix
-from sklearn.preprocessing import LabelBinarizer
+def display_tsne(train_x, train_y, label_map=None):
+    """t-distributed Stochastic Neighbor Embedding (t-SNE) visualization."""
+    tsne = TSNE(n_components=2, random_state=0)
+    x_transform = tsne.fit_transform(train_x)
+    y_unique = np.unique(train_y)
+    if label_map is None:
+        label_map = {str(i): i for i in y_unique}
+    elif not isinstance(label_map, dict):
+        raise ValueError('label_map most be a dict of key mapping to its true label')
+    colours = plt.cm.rainbow(np.linspace(0, 1, len(y_unique)))
+    plt.figure()
+    for index, cl in enumerate(y_unique):
+        plt.scatter(x=x_transform[train_y == cl, 0],
+                    y=x_transform[train_y == cl, 1],
+                    s=300,
+                    c=colours[index],
+                    marker=r"$ {} $".format(label_map[str(cl)]),
+                    edgecolors='none',
+                    label=label_map[str(cl)])
+    plt.xlabel('X in t-SNE')
+    plt.ylabel('Y in t-SNE')
+    # plt.legend(loc='upper right')
+    plt.title('t-SNE visualization')
+    plt.show(False)
 
 
 def display_receptive_fields(network, layer_list=None, top_k=5):
@@ -198,7 +225,10 @@ def get_class(in_matrix):
 
     Returns: Class array
     """
-    return np.expand_dims(np.argmax(in_matrix, axis=1), axis=1)
+    if in_matrix.shape[1] > 1:
+        return np.expand_dims(np.argmax(in_matrix, axis=1), axis=1)
+    elif in_matrix.shape[1] == 1:
+        return np.around(in_matrix)
 
 
 def display_record(record=None, load_path=None):

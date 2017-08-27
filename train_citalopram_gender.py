@@ -44,8 +44,13 @@ def main():
     del data['Gender']
     del data['id_response']
 
-    data = data.astype('float32')
     data = np.array(data)
+
+    from sklearn.decomposition import PCA
+    pca = PCA()
+
+    data = pca.fit_transform(data)
+    data = data.astype('float32')
 
     # data = data[:, :5]
     # Used to shuffle matrices in unison
@@ -59,6 +64,16 @@ def main():
     train_y = gender_data[:int(gender_data.shape[0] * train_reserve)]
     val_y = gender_data[int(gender_data.shape[0] * train_reserve):]
 
+    from src.utils import display_tsne
+
+    display_tsne(data, gender_data[:, 0], label_map={'0.0': 'male', '1.0': 'female'})
+
+    network_dense_config = {
+        'mode': 'dense',
+        'units': [256],
+        'dropouts': [0.5],
+    }
+
     input_var = T.fmatrix('input')
     y = T.fmatrix('truth')
 
@@ -67,22 +82,20 @@ def main():
         dimensions=(None, int(train_x.shape[1])),
         input_var=input_var,
         y=y,
-        units=[1024],
-        dropouts=[0.2],
+        config=network_dense_config,
         input_network=None,
-        num_classes=2,
-        activation='rectify',
-        pred_activation='softmax',
+        num_classes=1,
+        activation='selu',
+        pred_activation='sigmoid',
         optimizer='adam',
-        learning_rate=0.001
+        learning_rate=0.0001
     )
 
     # Use to load model from disk
     # dense_net.load_model(load_path='models/3_dense.npz')
 
-    run_test(dense_net, test_x=val_x, test_y=val_y)
     dense_net.train(
-        epochs=5,
+        epochs=50,
         train_x=train_x,
         train_y=train_y,
         val_x=val_x,
@@ -91,6 +104,7 @@ def main():
         plot=True
     )
     run_test(dense_net, test_x=val_x, test_y=val_y)
+
     # Use to run the test suite on the model
     # run_test(dense_net, test_x=val_x, test_y=val_y)
 
