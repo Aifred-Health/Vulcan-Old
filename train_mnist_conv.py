@@ -80,7 +80,7 @@ dense_net.train(
     plot=False
 )
 
-conv_net.save_record()
+dense_net.save_record()
 
 run_test(dense_net, test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
-conv_net.save_model()
+dense_net.save_model()

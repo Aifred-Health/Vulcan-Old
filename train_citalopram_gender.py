@@ -93,9 +93,12 @@ def main():
 
     # Use to load model from disk
     # dense_net.load_model(load_path='models/3_dense.npz')
+    # from src.model_tests import k_fold_validation
+
+    # k_fold_validation(dense_net, data, gender_data)
 
     dense_net.train(
-        epochs=50,
+        epochs=10,
         train_x=train_x,
         train_y=train_y,
         val_x=val_x,

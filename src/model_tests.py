@@ -146,14 +146,8 @@ def run_test(network, test_x, test_y, figure_path='figures', plot=True):
     if not plot:
         plt.close()
 
-    all_class_auc = metrics.roc_auc_score(
-        get_one_hot(test_y),
-        get_one_hot(class_prediction),
-        average=None
-    )
-    if not isinstance(all_class_auc, np.ndarray):
-        all_class_auc = [all_class_auc]
     fig = plt.figure()
+    all_class_auc = []
     for i in range(network.num_classes):
         if network.num_classes == 1:
             fpr, tpr, thresholds = metrics.roc_curve(test_y,
@@ -163,7 +157,9 @@ def run_test(network, test_x, test_y, figure_path='figures', plot=True):
             fpr, tpr, thresholds = metrics.roc_curve(test_y,
                                                      raw_prediction[:, i],
                                                      pos_label=i)
-        auc = all_class_auc[i]
+
+        auc = metrics.auc(fpr, tpr)
+        all_class_auc += [auc]
         # print ('AUC: {:.4f}'.format(auc))
         # print ('\tGenerating ROC {}/{}{}/{}.png ...'.format(figure_path,
         #                                                     network.timestamp,
