@@ -32,7 +32,8 @@ def display_tsne(train_x, train_y, label_map=None):
     if label_map is None:
         label_map = {str(i): i for i in y_unique}
     elif not isinstance(label_map, dict):
-        raise ValueError('label_map most be a dict of key mapping to its true label')
+        raise ValueError('label_map most be a dict of a key'
+                         ' mapping to its true label')
     colours = plt.cm.rainbow(np.linspace(0, 1, len(y_unique)))
     plt.figure()
     for index, cl in enumerate(y_unique):

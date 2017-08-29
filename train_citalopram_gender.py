@@ -85,7 +85,7 @@ def main():
         config=network_dense_config,
         input_network=None,
         num_classes=1,
-        activation='selu',
+        activation='rectify',
         pred_activation='sigmoid',
         optimizer='adam',
         learning_rate=0.0001

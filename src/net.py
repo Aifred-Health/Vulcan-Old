@@ -86,9 +86,11 @@ class Network(object):
         self.input_var = input_var
         self.y = y
         self.input_network = input_network
+        self.input_params = None
         if self.input_network is not None:
-            if self.input_network.get('network', False) and \
-               self.input_network.get('layer', False):
+            if self.input_network.get('network', False) is not False and \
+               self.input_network.get('layer', False) is not False and \
+               self.input_network.get('get_params', None) is not None:
 
                 self.input_var = lasagne.layers.get_all_layers(
                     self.input_network['network']
@@ -99,13 +101,15 @@ class Network(object):
                         self.input_network['layer']
                     ]
                 )
+                if self.input_network.get('get_params', False):
+                    self.input_params = self.input_network['network'].params
 
             else:
                 raise ValueError(
-                    'input_network requires {{ network: type Network,'
-                    ' layer: type int}}. '
+                    'input_network for {} requires {{ network: type Network,'
+                    ' layer: type int, get_params: type bool}}. '
                     'Only given keys: {}'.format(
-                        self.input_network.keys()
+                        self.name, self.input_network.keys()
                     )
                 )
         self.num_classes = num_classes
@@ -235,8 +239,8 @@ class Network(object):
                 stride=s,
                 pad='same',
                 nonlinearity=nonlinearity,
-                name="{}_conv{}".format(
-                     self.name, conv_dim)
+                name="{}_conv{}D_{}".format(
+                     self.name, conv_dim, i)
             )
             network.add_param(
                 network.W,
@@ -411,6 +415,9 @@ class Network(object):
             trainable=True,
             **{self.name: True}
         )
+        if self.input_params is not None:
+            self.params = self.input_params + self.params
+
         # calculate a loss function which has to be a scalar
         if self.cost is None:
             if self.num_classes is None or self.num_classes == 0:
@@ -528,6 +535,15 @@ class Network(object):
             validation_accuracy=[]
         )
 
+        output_shape = lasagne.layers.get_output_shape(self.network)
+        if output_shape[1:] != train_y.shape[1:]:
+            raise ValueError(
+                'Shape mismatch: non-batch dimensions don\'t match.'
+                '\n\tNetwork output shape: {}'
+                '\n\tLabel shape (train_y): {}'.format(
+                    output_shape,
+                    train_y.shape))
+
         if train_x.shape[0] * batch_ratio < 1.0:
             batch_ratio = 1.0 / train_x.shape[0]
             print ('Warning: Batch ratio too small. Changing to {:.5f}'.format
@@ -625,13 +641,14 @@ class Network(object):
                                                 **{self.name: True})
         )
         if self.input_network is None:
-            return (pickle_dict, net_parameters, None, None)
+            return (pickle_dict, net_parameters, None, None, None)
         else:
             pickle_dict['input_network'] = None
             return (pickle_dict,
                     net_parameters,
                     self.input_network['network'].save_name,
-                    self.input_network['layer'])
+                    self.input_network['layer'],
+                    self.input_network['get_params'])
 
     def __setstate__(self, params):
         """Pickle load config."""
@@ -640,7 +657,8 @@ class Network(object):
             input_network = Network.load_model(params[2])
             self.input_var = input_network.input_var
             self.input_network = {'network': input_network,
-                                  'layer': params[3]}
+                                  'layer': params[3],
+                                  'get_params': params[4]}
         else:
             tensor_size = len(self.input_dimensions)
 
@@ -724,7 +742,7 @@ class Network(object):
             with open('{}_stats.pickle'.format(file_path), 'w') as output:
                 pickle.dump(self.record, output, -1)
         else:
-            print ("Error: Nothing to save. Try training the model first.")
+            print ("No record to save. Train the model first.")
 
     def save_metadata(self, file_path='models'):
         """

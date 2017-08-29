@@ -12,7 +12,11 @@ from src.model_tests import run_test
 
 from src.utils import display_tsne
 
-(train_images, train_labels, test_images, test_labels) = mnist_loader.load_mnist()
+(train_images, train_labels, test_images, test_labels) = mnist_loader.load_fashion_mnist()
+
+from sklearn.utils import shuffle
+
+train_images, train_labels = shuffle(train_images, train_labels, random_state=0)
 
 display_tsne(train_images[:1000], train_labels[:1000])
 
@@ -26,13 +30,19 @@ y = T.fmatrix('truth')
 
 network_conv_config = {
     'mode': 'conv',
-    'filters': [10, 5],
-    'filter_size': [[3, 3], [5, 5]],
+    'filters': [16, 32],
+    'filter_size': [[5, 5], [5, 5]],
     'stride': [[1, 1], [1, 1]],
     'pool': {
-        'mode': 'max',
+        'mode': 'average_exc_pad',
         'stride': [[2, 2], [2, 2]]
     }
+}
+
+network_dense_config = {
+    'mode': 'dense',
+    'units': [512],
+    'dropouts': [0.3],
 }
 
 conv_net = Network(
@@ -42,26 +52,35 @@ conv_net = Network(
     y=y,
     config=network_conv_config,
     input_network=None,
+    num_classes=None)
+
+dense_net = Network(
+    name='1_dense',
+    dimensions=(None, int(train_images.shape[1])),
+    input_var=input_var,
+    y=y,
+    config=network_dense_config,
+    input_network={'network': conv_net, 'layer': 4, 'get_params': True},
     num_classes=10,
     activation='rectify',
-    pred_activation='softmax',
-    optimizer='adam')
+    pred_activation='softmax'
+)
 
 train_images = np.expand_dims(train_images, axis=1)
 test_images = np.expand_dims(test_images, axis=1)
 # # Use to load model from disk
 # # dense_net = Network.load_model('models/20170704194033_3_dense_test.network')
-conv_net.train(
-    epochs=2,
+dense_net.train(
+    epochs=200,
     train_x=train_images[:50000],
     train_y=train_labels[:50000],
     val_x=train_images[50000:60000],
     val_y=train_labels[50000:60000],
     batch_ratio=0.05,
-    plot=True
+    plot=False
 )
 
 conv_net.save_record()
 
-run_test(conv_net, test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
+run_test(dense_net, test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
 conv_net.save_model()

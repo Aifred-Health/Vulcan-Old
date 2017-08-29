@@ -181,7 +181,7 @@ def run_test(network, test_x, test_y, figure_path='figures', plot=True):
                                             network.timestamp,
                                             network.name, i))
         if plot:
-            plt.show()
+            plt.show(False)
 
     if not plot:
         plt.close(fig.number)
