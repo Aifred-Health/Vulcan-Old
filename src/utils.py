@@ -134,13 +134,19 @@ def display_saliency_overlay(image, saliency_map, shape=(28, 28)):
         saliency_map: numpy array (1d vector) for image
         shape: the dimensions of the image. defaults to mnist.
     """
+    if len(image.shape) == 3 or len(saliency_map.shape) == 3:
+        image = image[0]
+        saliency_map = saliency_map[0]
+    elif len(image.shape) == 1 or len(saliency_map.shape) == 1:
+        image = np.reshape(image, shape)
+        saliency_map = np.reshape(saliency_map, shape)
+
     fig = plt.figure()
     fig.add_subplot(1, 2, 1)
-    plt.imshow(np.reshape(image, shape), cmap='gray')
+    plt.imshow(image, cmap='gray')
     fig.add_subplot(1, 2, 2)
-    plt.imshow(np.reshape(image, shape), cmap='binary')
-    plt.imshow(np.reshape(abs(saliency_map), shape),
-               cmap='hot_r', alpha=0.7)
+    plt.imshow(image, cmap='binary')
+    plt.imshow(abs(saliency_map), cmap='hot_r', alpha=0.7)
     plt.colorbar()
     plt.show(False)
 

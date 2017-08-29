@@ -21,6 +21,7 @@ train_images, train_labels = shuffle(train_images, train_labels, random_state=0)
 display_tsne(train_images[:1000], train_labels[:1000])
 
 train_labels = get_one_hot(train_labels)
+test_labels = get_one_hot(test_labels)
 
 train_images = np.reshape(train_images, (train_images.shape[0], 28, 28))
 test_images = np.reshape(test_images, (test_images.shape[0], 28, 28))
