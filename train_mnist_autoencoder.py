@@ -57,7 +57,7 @@ dense_net = Network(
     input_var=input_var,
     y=y,
     config=network_dense_config,
-    input_network={'network': autoencoder, 'layer': 4},
+    input_network={'network': autoencoder, 'layer': 4, 'get_params': False},
     num_classes=10
 )
 

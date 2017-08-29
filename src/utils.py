@@ -25,7 +25,17 @@ import matplotlib.pyplot as plt
 
 
 def display_tsne(train_x, train_y, label_map=None):
-    """t-distributed Stochastic Neighbor Embedding (t-SNE) visualization."""
+    """
+    t-distributed Stochastic Neighbor Embedding (t-SNE) visualization [1].
+
+    [1]: Maaten, L., Hinton, G. (2008). Visualizing Data using t-SNE.
+            JMLR 9(Nov):2579--2605.
+
+    Args:
+        train_x: 2d numpy array (batch, features) of samples
+        train_y: 2d numpy array (batch, labels) for samples
+        label_map: a dict of labelled (int, string) key, value pairs
+    """
     tsne = TSNE(n_components=2, random_state=0)
     x_transform = tsne.fit_transform(train_x)
     y_unique = np.unique(train_y)
@@ -53,11 +63,20 @@ def display_tsne(train_x, train_y, label_map=None):
 
 def display_receptive_fields(network, layer_list=None, top_k=5):
     """
-    Display receptive fields of layers from a network.
+    Display receptive fields of layers from a network [1].
+
+    [1]: Luo, W., Li, Y., Urtason, R., Zemel, R. (2016).
+         Understanding the Effective Receptive Field in Deep
+         Convolutional Neural Networks. Advances in Neural Information
+         Processing Systems, 29 (NIPS 2016)
+
 
     Args:
         network: Network object
-        layer: list of layer indices to get fields
+        layer: list of layer indices to get fields from
+        top_k: most and least k important features from field
+
+    Returns a dict of the top k and bottom k important features.
     """
     if layer_list is None:
         layer_list = range(len(network.layers))
@@ -93,7 +112,13 @@ def display_receptive_fields(network, layer_list=None, top_k=5):
 
 
 def get_notable_indices(matrix, top_k=5):
-    """Return dict of top k and bottom k features useful."""
+    """
+    Return dict of top k and bottom k features useful from matrix.
+
+    Args:
+        matrix: 1d numpy array
+        top_k: defaults to top and bottom 5 indices
+    """
     important_features = matrix.argsort()[-top_k:][::-1]
     unimportant_features = matrix.argsort()[:-1][:top_k]
     return {'important_indices': important_features,
@@ -101,7 +126,14 @@ def get_notable_indices(matrix, top_k=5):
 
 
 def display_saliency_overlay(image, saliency_map, shape=(28, 28)):
-    """Overlay saliency map over image."""
+    """
+    Plot overlay saliency map over image.
+
+    Args:
+        image: numpy array (1d vector) for single image
+        saliency_map: numpy array (1d vector) for image
+        shape: the dimensions of the image. defaults to mnist.
+    """
     fig = plt.figure()
     fig.add_subplot(1, 2, 1)
     plt.imshow(np.reshape(image, shape), cmap='gray')
@@ -114,31 +146,31 @@ def display_saliency_overlay(image, saliency_map, shape=(28, 28)):
 
 
 def get_saliency_map(network, input_data):
-        """
-        Calculate the saliency map for all input samples.
+    """
+    Calculate the saliency map for all input samples.
 
-        Calculates the derivative of the score w.r.t the input.
-        Helps with getting the 'why' from a prediction.
+    Calculates the derivative of the score w.r.t the input.
+    Helps with getting the 'why' from a prediction.
 
-        Args:
-            network: Network type to get
-            input_data: ndarray(2D), batch of samples
+    Args:
+        network: Network type to get saliency from
+        input_data: ndarray(2D), batch of samples
 
-        Returns saliency map for all given samples
-        """
-        output = lasagne.layers.get_output(
-            network.layers[-2],
-            deterministic=True
-        )
-        max_out = T.max(output, axis=1)
-        sal_fun = theano.function(
-            [network.input_var],
-            T.grad(max_out.sum(), wrt=network.input_var)
-        )
-        sal_map = sal_fun(input_data)
-        if sal_map.shape != input_data.shape:
-            raise ValueError('Shape mismatch')
-        return sal_map
+    Returns saliency map for all given samples
+    """
+    output = lasagne.layers.get_output(
+        network.layers[-2],
+        deterministic=True
+    )
+    max_out = T.max(output, axis=1)
+    sal_fun = theano.function(
+        [network.input_var],
+        T.grad(max_out.sum(), wrt=network.input_var)
+    )
+    sal_map = sal_fun(input_data)
+    if sal_map.shape != input_data.shape:
+        raise ValueError('Shape mismatch')
+    return sal_map
 
 
 def get_all_embedded_networks(network):

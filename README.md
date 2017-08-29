@@ -1,31 +1,13 @@
-# aifred
-Clinical Decision Aid for Increased Treatment Efficacy
+# Vulcan
+Deep Learning Framework
 
-Mental health is an integral part of our well-being and how we function within society. aifred aims to bring personalized treatments at scale by combining best practices from psychiatry and deep learning.
+Vulcan is a high-level framework built on top of Theano and Lasagne using added functionality from Scikit-learn to provide all of the tools needed for:
 
-For a more detailed runthrough of using the tools, please look at the [wiki](https://github.com/rfratila/aifred/wiki)
+* visualizing high-dimensional data
+* data preprocessing
+* creating modular neural networks 
+* model evaluation
 
-## Dependencies
- Simply run:
- ```
- sudo pip install -r requirements.txt
- ```
+This framework was designed with both modularity and ease of use in mind so prototyping architectures is very simple and using them across many machines is even easier. Moreover, it comes with state of the art activations, ensemble methods and network interpretability techniques that all take part in finding the right model for a set of data.
 
-## Running the scripts:
- To train the studies on gender and predict the class run:
- ```
- python train_citalopram_gender.py
- ```
- or
-  ```
- python train_duloxetine_gender.py
- ```
-
- To train the studies on remission and predict the class run:
-  ```
- python train_citalopram_remission.py
- ```
- or
-  ```
- python train_duloxetine_remission.py
- ```
+For a more detailed runthrough on how to use the tools, please look at the [wiki](https://github.com/rfratila/aifred/wiki)
