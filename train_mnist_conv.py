@@ -18,6 +18,9 @@ from sklearn.utils import shuffle
 
 train_images, train_labels = shuffle(train_images, train_labels, random_state=0)
 
+# f_net = Network.load_model('models/20170828235548_fashion.network')
+# m_net = Network.load_model('models/20170828235251_mnist.network')
+
 label_map = {
     '0': 'T-shirt/top',
     '1': 'Trouser',
@@ -31,13 +34,16 @@ label_map = {
     '9': 'Ankle boot'
 }
 
-display_tsne(train_images[:1000], train_labels[:1000], label_map)
+display_tsne(train_images[:2000], train_labels[:2000], label_map)
 
 train_labels = get_one_hot(train_labels)
 test_labels = get_one_hot(test_labels)
 
 train_images = np.reshape(train_images, (train_images.shape[0], 28, 28))
 test_images = np.reshape(test_images, (test_images.shape[0], 28, 28))
+
+train_images = np.expand_dims(train_images, axis=1)
+test_images = np.expand_dims(test_images, axis=1)
 
 input_var = T.tensor4('input')
 y = T.fmatrix('truth')
@@ -79,9 +85,6 @@ dense_net = Network(
     activation='rectify',
     pred_activation='softmax'
 )
-
-train_images = np.expand_dims(train_images, axis=1)
-test_images = np.expand_dims(test_images, axis=1)
 # # Use to load model from disk
 # # dense_net = Network.load_model('models/20170704194033_3_dense_test.network')
 dense_net.train(
@@ -96,5 +99,5 @@ dense_net.train(
 
 dense_net.save_record()
 
-run_test(dense_net, test_x=train_images[50000:60000], test_y=train_labels[50000:60000])
+run_test(dense_net, test_x=test_images, test_y=test_labels)
 dense_net.save_model()
