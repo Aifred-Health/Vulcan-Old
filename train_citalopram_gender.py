@@ -45,6 +45,10 @@ def main():
     del data['id_response']
 
     data = np.array(data)
+    from src.utils import display_tsne
+
+    display_tsne(data, gender_data[:, 0], label_map={'0.0': 'male', '1.0': 'female'})
+
 
     from sklearn.decomposition import PCA
     pca = PCA()
@@ -64,10 +68,8 @@ def main():
     train_y = gender_data[:int(gender_data.shape[0] * train_reserve)]
     val_y = gender_data[int(gender_data.shape[0] * train_reserve):]
 
-    from src.utils import display_tsne
-
     display_tsne(data, gender_data[:, 0], label_map={'0.0': 'male', '1.0': 'female'})
-
+    import pudb; pu.db
     network_dense_config = {
         'mode': 'dense',
         'units': [256],

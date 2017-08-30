@@ -18,7 +18,20 @@ from sklearn.utils import shuffle
 
 train_images, train_labels = shuffle(train_images, train_labels, random_state=0)
 
-display_tsne(train_images[:1000], train_labels[:1000])
+label_map = {
+    '0': 'T-shirt/top',
+    '1': 'Trouser',
+    '2': 'Pullover',
+    '3': 'Dress',
+    '4': 'Coat',
+    '5': 'Sandal',
+    '6': 'Shirt',
+    '7': 'Sneaker',
+    '8': 'Bag',
+    '9': 'Ankle boot'
+}
+
+display_tsne(train_images[:1000], train_labels[:1000], label_map)
 
 train_labels = get_one_hot(train_labels)
 test_labels = get_one_hot(test_labels)
