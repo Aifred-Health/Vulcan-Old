@@ -93,7 +93,7 @@ def main():
         input_var=None,
         y=None,
         config=discriminator_config,
-        input_network={'network': generator, 'layer': 6},
+        input_network={'network': generator, 'layer': 6, 'get_params': False},
         num_classes=1,
         pred_activation='sigmoid'
     )
