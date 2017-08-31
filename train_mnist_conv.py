@@ -88,7 +88,7 @@ dense_net = Network(
 # # Use to load model from disk
 # # dense_net = Network.load_model('models/20170704194033_3_dense_test.network')
 dense_net.train(
-    epochs=5,
+    epochs=200,
     train_x=train_images[:50000],
     train_y=train_labels[:50000],
     val_x=train_images[50000:60000],
