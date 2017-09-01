@@ -42,9 +42,6 @@ test_labels = get_one_hot(test_labels)
 train_images = np.reshape(train_images, (train_images.shape[0], 28, 28))
 test_images = np.reshape(test_images, (test_images.shape[0], 28, 28))
 
-train_images = np.expand_dims(train_images, axis=1)
-test_images = np.expand_dims(test_images, axis=1)
-
 input_var = T.tensor4('input')
 y = T.fmatrix('truth')
 
@@ -85,6 +82,9 @@ dense_net = Network(
     activation='rectify',
     pred_activation='softmax'
 )
+
+train_images = np.expand_dims(train_images, axis=1)
+test_images = np.expand_dims(test_images, axis=1)
 # # Use to load model from disk
 # # dense_net = Network.load_model('models/20170704194033_3_dense_test.network')
 dense_net.train(
