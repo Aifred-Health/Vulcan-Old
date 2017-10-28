@@ -50,15 +50,14 @@ class Network(object):
             dimensions: the size of the input data matrix
             input_var: theano tensor representing input matrix
             y: theano tensor representing truth matrix
-            units: The list of number of nodes to have at each layer
-            dropouts: The list of dropout probabilities to have at each layer
-            input_network: a dictionary containing keys (network, layer).
+            config: Network configuration (as dict)
+            input_network: None or a dictionary containing keys (network, layer).
                 network: a Network object
                 layer: an integer corresponding to the layer you want output
             num_classes: None or int. how many classes to predict
-            activation: layer activation function
+            activation:  activation function for hidden layers
             pred_activation: the classifying layer activation
-            optimizer: which optimizer to usem as the learning function
+            optimizer: which optimizer to use as the learning function
             learning_rate: the initial learning rate
         """
         self.name = name
@@ -133,7 +132,7 @@ class Network(object):
 
     def create_network(self, config, nonlinearity):
         """
-        Abstract functino to create any network given a config dict.
+        Abstract function to create any network given a config dict.
 
         Args:
             config: dict. the network configuration
@@ -197,22 +196,22 @@ class Network(object):
                              'length of {}'.format(pool_stride, conv_dim))
         if pool_mode not in lasagne_pools:
             raise ValueError('{} pooling does not exist. '
-                             'Please use one from: {}'.format(lasagne_pools))
+                             'Please use one of: {}'.format(pool_mode, lasagne_pools))
 
-        print ("Creating {} Network...".format(self.name))
+        print("Creating {} Network...".format(self.name))
         if self.input_network is None:
-            print ('\tInput Layer:')
+            print('\tInput Layer:')
             network = lasagne.layers.InputLayer(shape=self.input_dimensions,
                                                 input_var=self.input_var,
                                                 name="{}_input".format(
                                                      self.name))
-            print '\t\t', lasagne.layers.get_output_shape(network)
+            print('\t\t{}'.format(lasagne.layers.get_output_shape(network)))
             self.layers.append(network)
         else:
             network = self.input_network['network']. \
                 layers[self.input_network['layer']]
 
-            print ('Appending layer {} from {} to {}'.format(
+            print('Appending layer {} from {} to {}'.format(
                 self.input_network['layer'],
                 self.input_network['network'].name,
                 self.name))
@@ -226,8 +225,12 @@ class Network(object):
         elif conv_dim == 3:
             conv_layer = lasagne.layers.Conv3DLayer
             pool = lasagne.layers.Pool3DLayer
+        else:
+            pool = None   # Linter is stupid
+            conv_layer = None
+            ValueError("Convolution is only supported for one of the first three dimensions")
 
-        print ('\tHidden Layer:')
+        print('\tHidden Layer:')
         for i, (f, f_size, s, p_s) in enumerate(zip(filters,
                                                     filter_size,
                                                     stride,
@@ -253,7 +256,7 @@ class Network(object):
                 **{self.name: True}
             )
             self.layers.append(network)
-            print '\t\t', lasagne.layers.get_output_shape(network)
+            print('\t\t{}'.format(lasagne.layers.get_output_shape(network)))
             network = pool(
                 incoming=network,
                 pool_size=p_s,
@@ -262,7 +265,7 @@ class Network(object):
                      self.name, pool_mode)
             )
             self.layers.append(network)
-            print '\t\t', lasagne.layers.get_output_shape(network)
+            print('\t\t{}'.format(lasagne.layers.get_output_shape(network)))
         return network
 
     def create_dense_network(self, units, dropouts, nonlinearity):
@@ -270,10 +273,9 @@ class Network(object):
         Generate a fully connected layer.
 
         Args:
-            dimension: the size of the incoming theano tensor
-            input_var: a theano tensor representing your data input
             units: The list of number of nodes to have at each layer
-            dropout: The list of dropout probabilities to have at each layer
+            dropouts: The list of dropout probabilities for each layer
+            nonlinearity: Nonlinearity from Lasagne.nonlinearities
 
         Returns: the output of the network (linked up to all the layers)
         """
@@ -282,20 +284,20 @@ class Network(object):
                 "Cannot build network: units and dropouts don't correspond"
             )
 
-        print ("Creating {} Network...".format(self.name))
+        print("Creating {} Network...".format(self.name))
         if self.input_network is None:
-            print ('\tInput Layer:')
+            print('\tInput Layer:')
             network = lasagne.layers.InputLayer(shape=self.input_dimensions,
                                                 input_var=self.input_var,
                                                 name="{}_input".format(
                                                      self.name))
-            print '\t\t', lasagne.layers.get_output_shape(network)
+            print('\t\t', lasagne.layers.get_output_shape(network))
             self.layers.append(network)
         else:
             network = self.input_network['network']. \
                 layers[self.input_network['layer']]
 
-            print ('Appending layer {} from {} to {}'.format(
+            print('Appending layer {} from {} to {}'.format(
                 self.input_network['layer'],
                 self.input_network['network'].name,
                 self.name))
@@ -306,7 +308,7 @@ class Network(object):
                 name="{}_batchnorm".format(self.name)
             )
 
-        print ('\tHidden Layer:')
+        print('\tHidden Layer:')
         for i, (num_units, prob_dropout) in enumerate(zip(units, dropouts)):
             if nonlinearity.__name__ == 'selu':
                 w = lasagne.init.Normal(std=np.sqrt(1.0 / num_units))
@@ -347,21 +349,22 @@ class Network(object):
                 )
 
             self.layers.append(network)
-            print '\t\t', lasagne.layers.get_output_shape(network)
+            print('\t\t{}'.format(lasagne.layers.get_output_shape(network)))
         return network
 
     def create_classification_layer(self, network, num_classes,
                                     nonlinearity):
         """
-        Create a classificatino layer. Normally used as the last layer.
+        Create a classification layer. Normally used as the last layer.
 
         Args:
             network: network you want to append a classification to
             num_classes: how many classes you want to predict
+            nonlinearity: nonlinearity to use as a string (see DenseLayer)
 
         Returns: the classification layer appended to all previous layers
         """
-        print ('\tOutput Layer:')
+        print('\tOutput Layer:')
         network = lasagne.layers.DenseLayer(
             incoming=network,
             num_units=num_classes,
@@ -378,34 +381,30 @@ class Network(object):
             network.b.get_value().shape,
             **{self.name: True}
         )
-        print '\t\t', lasagne.layers.get_output_shape(network)
+        print('\t\t'.format(lasagne.layers.get_output_shape(network)))
         self.layers.append(network)
         return network
 
     def cross_entropy_loss(self, prediction, y):
         """Generate a cross entropy loss function."""
-        print ("Using categorical cross entropy loss")
+
+        print("Using categorical cross entropy loss")
         return lasagne.objectives.categorical_crossentropy(prediction,
                                                            y).mean()
 
     def mse_loss(self, prediction, y):
         """Generate mean squared error loss function."""
-        print ("Using Mean Squared error loss")
+        print("Using Mean Squared error loss")
         return lasagne.objectives.squared_error(prediction, y).mean()
 
     def create_trainer(self):
         """
         Generate a theano function to train the network.
 
-        Args:
-            network: Lasagne object representing the network
-            input_var: theano.tensor object used for data input
-            y: theano.tensor object used for truths
-
         Returns: theano function that takes as input (train_x,train_y)
                  and trains the net
         """
-        print ("Creating {} Trainer...".format(self.name))
+        print("Creating {} Trainer...".format(self.name))
         # get network output
         out = lasagne.layers.get_output(self.network)
         # get all trainable parameters from network
@@ -442,6 +441,9 @@ class Network(object):
                 params=self.params,
                 learning_rate=learning_rate_var
             )
+        else:
+            updates = None
+            ValueError("No optimizer found")
 
         # omitted (, allow_input_downcast=True)
         return theano.function(
@@ -453,15 +455,10 @@ class Network(object):
         """
         Generate theano function to check error and accuracy of the network.
 
-        Args:
-            network: Lasagne object representing the network
-            input_var: theano.tensor object used for data input
-            y: theano.tensor object used for truths
-
         Returns: theano function that takes input (train_x,train_y)
                  and returns error and accuracy
         """
-        print ("Creating {} Validator...".format(self.name))
+        print("Creating {} Validator...".format(self.name))
         # create prediction
         val_prediction = lasagne.layers.get_output(
             self.network,
@@ -494,7 +491,7 @@ class Network(object):
 
         Args:
             input_data: Numpy matrix to make the predictions on
-            get_predictions: If the output should return the class
+            convert_to_class: If true, output the class
                              with highest probability
 
         Returns: Numpy matrix with the output probabilities
@@ -517,11 +514,11 @@ class Network(object):
             val_x: the validation data (should not be also in train_x)
             val_y: the validation truth (should not be also in train_y)
             batch_ratio: the percent (0-1) of how much data a batch should have
-            plot: boolean if training curves should be plotted while training
-            change_rate: a function that takes alpha and returns alpha'
+            plot: If True, plot performance during training
+            change_rate: a function that updates learning rate (takes an alpha, returns an alpha)'
 
         """
-        print ('\nTraining {} in progress...\n'.format(self.name))
+        print('\nTraining {} in progress...\n'.format(self.name))
 
         if batch_ratio > 1:
             batch_ratio = 1
@@ -546,13 +543,12 @@ class Network(object):
 
         if train_x.shape[0] * batch_ratio < 1.0:
             batch_ratio = 1.0 / train_x.shape[0]
-            print ('Warning: Batch ratio too small. Changing to {:.5f}'.format
-                   (batch_ratio))
+            print('Warning: Batch ratio too small. Changing to {:.5f}'.format(batch_ratio))
         try:
             fig_number = plt.gcf().number + 1 if plt.fignum_exists(1) else 1
             for epoch in range(epochs):
                 epoch_time = time.time()
-                print ("--> Epoch: {}/{}".format(
+                print("--> Epoch: {}/{}".format(
                     epoch,
                     epochs - 1
                 ))
@@ -579,14 +575,14 @@ class Network(object):
                                 'that returns a new learning rate. '
                                 'Learning rate remains unchanged.'
                             )
-                        # print ('Modifying learning rate from {}'.format(
+                        # print('Modifying learning rate from {}'.format(
                         #     self.learning_rate)
                         # ),
                         self.learning_rate = change_rate(
                             self.init_learning_rate,
                             self.minibatch_iteration
                         )
-                        # print ('to {}'.format(self.learning_rate))
+                        # print('to {}'.format(self.learning_rate))
                     self.minibatch_iteration += 1
                 train_error, train_accuracy = self.validator(train_x, train_y)
                 validation_error, validation_accuracy = self.validator(val_x,
@@ -598,24 +594,22 @@ class Network(object):
                 self.record['validation_error'].append(validation_error)
                 self.record['validation_accuracy'].append(validation_accuracy)
                 epoch_time_spent = time.time() - epoch_time
-                print ("\n\ttrain error: {:.6f} |"
-                       " train accuracy: {:.6f} in {:.2f}s"
-                       .format(
-                           float(train_error),
-                           float(train_accuracy),
-                           epoch_time_spent))
-                print ("\tvalid error: {:.6f} |"
-                       " valid accuracy: {:.6f} in {:.2f}s"
-                       .format(
-                           float(validation_error),
-                           float(validation_accuracy),
-                           epoch_time_spent))
+                print("\n\ttrain error: {:.6f} |"" train accuracy: {:.6f} in {:.2f}s".format(
+                    float(train_error),
+                    float(train_accuracy),
+                    epoch_time_spent))
+                print("\tvalid error: {:.6f} | valid accuracy: {:.6f} in {:.2f}s".format(
+                    float(validation_error),
+                    float(validation_accuracy),
+                    epoch_time_spent))
 
                 eta = epoch_time_spent * (epochs - epoch - 1)
                 minute, second = divmod(eta, 60)
                 hour, minute = divmod(minute, 60)
-                print ("\tEstimated time left: {}:{}:{} (h:m:s)\n"
-                       .format(int(hour), int(minute), int(second)))
+                print("\tEstimated time left: {}:{}:{} (h:m:s)\n".format(
+                    int(hour),
+                    int(minute),
+                    int(second)))
 
                 if plot:
                     plt.ion()
@@ -623,7 +617,7 @@ class Network(object):
                     display_record(record=self.record)
 
         except KeyboardInterrupt:
-            print ("\n\n**********Training stopped prematurely.**********\n\n")
+            print("\n\n**********Training stopped prematurely.**********\n\n")
         finally:
             self.timestamp = get_timestamp()
 
@@ -641,7 +635,7 @@ class Network(object):
                                                 **{self.name: True})
         )
         if self.input_network is None:
-            return (pickle_dict, net_parameters, None, None, None)
+            return pickle_dict, net_parameters, None, None, None
         else:
             pickle_dict['input_network'] = None
             return (pickle_dict,
@@ -699,12 +693,12 @@ class Network(object):
                 self.input_network['network'].save_model()
 
         if not os.path.exists(save_path):
-            print ('Path not found, creating {}'.format(save_path))
+            print('Path not found, creating {}'.format(save_path))
             os.makedirs(save_path)
         file_path = os.path.join(save_path, "{}{}".format(self.timestamp,
                                                           self.name))
         self.save_name = '{}.network'.format(file_path)
-        print ('Saving model as: {}'.format(self.save_name))
+        print('Saving model as: {}'.format(self.save_name))
 
         with open(self.save_name, 'wb') as f:
             pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
@@ -714,12 +708,12 @@ class Network(object):
     @classmethod
     def load_model(cls, load_path):
         """
-        Will load the model paramters from npz file.
+        Will load the model parameters from npz file.
 
         Args:
             load_path: the exact location where the model has been saved.
         """
-        print ('Loading model from: {}'.format(load_path))
+        print('Loading model from: {}'.format(load_path))
         with open(load_path, 'rb') as f:
             instance = pickle.load(f)
         return instance
@@ -733,16 +727,16 @@ class Network(object):
         """
         if self.record is not None:
             if not os.path.exists(save_path):
-                print ('Path not found, creating {}'.format(save_path))
+                print('Path not found, creating {}'.format(save_path))
                 os.makedirs(save_path)
 
             file_path = os.path.join(save_path, "{}{}".format(self.timestamp,
                                                               self.name))
-            print ('Saving records as: {}_stats.pickle'.format(file_path))
+            print('Saving records as: {}_stats.pickle'.format(file_path))
             with open('{}_stats.pickle'.format(file_path), 'w') as output:
                 pickle.dump(self.record, output, -1)
         else:
-            print ("No record to save. Train the model first.")
+            print("No record to save. Train the model first.")
 
     def save_metadata(self, file_path='models'):
         """
@@ -772,9 +766,10 @@ class Network(object):
                 self.input_network['layer']
 
         json_file = "{}_metadata.json".format(file_path)
-        print ('Saving metadata to {}'.format(json_file))
+        print('Saving metadata to {}'.format(json_file))
         with open(json_file, 'w') as file:
             json.dump(config, file)
+
 
 if __name__ == "__main__":
     pass
