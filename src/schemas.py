@@ -6,7 +6,9 @@ dense_network = {
             "id": "/properties/dropouts",
             "items": {
                 "id": "/properties/dropouts/items",
-                "type": "number"
+                "type": "number",
+                "maximum": 1,
+                "minimum": 0
             },
             "type": "array"
         },
@@ -18,7 +20,8 @@ dense_network = {
             "id": "/properties/units",
             "items": {
                 "id": "/properties/units/items",
-                "type": "integer"
+                "type": "integer",
+                "minimum": 0
             },
             "type": "array"
         }
@@ -34,7 +37,8 @@ conv_network = {
                 "id": "/properties/filter_size/items",
                 "items": {
                     "id": "/properties/filter_size/items/items",
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "type": "array"
             },
@@ -44,7 +48,8 @@ conv_network = {
             "id": "/properties/filters",
             "items": {
                 "id": "/properties/filters/items",
-                "type": "integer"
+                "type": "integer",
+                "minimum": 1
             },
             "type": "array"
         },
@@ -57,7 +62,8 @@ conv_network = {
             "properties": {
                 "mode": {
                     "id": "/properties/pool/properties/mode",
-                    "type": "string"
+                    "type": "string",
+                    "enum": ["max", "average_inc_pad", "average_exc_pad"]
                 },
                 "stride": {
                     "id": "/properties/pool/properties/stride",
@@ -65,7 +71,8 @@ conv_network = {
                         "id": "/properties/pool/properties/stride/items",
                         "items": {
                             "id": "/properties/pool/properties/stride/items/items",
-                            "type": "integer"
+                            "type": "integer",
+                            "minimum": 1
                         },
                         "type": "array"
                     },
@@ -80,7 +87,8 @@ conv_network = {
                 "id": "/properties/stride/items",
                 "items": {
                     "id": "/properties/stride/items/items",
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "type": "array"
             },

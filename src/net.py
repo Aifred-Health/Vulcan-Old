@@ -23,6 +23,7 @@ from ops import activations, optimizers
 
 import json
 
+
 import cPickle as pickle
 
 from sklearn.utils import shuffle
@@ -140,14 +141,20 @@ class Network(object):
 
         returns a network.
         """
+        import jsonschema
+        import schemas
         mode = config.get('mode')
         if mode == 'dense':
+            jsonschema.validate(config, schemas.dense_network)
+
             network = self.create_dense_network(
                 units=config.get('units'),
                 dropouts=config.get('dropouts'),
                 nonlinearity=nonlinearity
             )
         elif mode == 'conv':
+            jsonschema.validate(config, schemas.conv_network)
+
             network = self.create_conv_network(
                 filters=config.get('filters'),
                 filter_size=config.get('filter_size'),
