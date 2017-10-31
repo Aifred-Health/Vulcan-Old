@@ -2,6 +2,7 @@ import os
 import urllib
 import gzip
 import numpy as np
+from sklearn.model_selection import train_test_split
 
 
 def load_fashion_mnist(validation_proportion=None, validation_seed=None):
@@ -11,8 +12,16 @@ def load_fashion_mnist(validation_proportion=None, validation_seed=None):
 
     Extracted from https://github.com/zalandoresearch/fashion-mnist/blob/master/README.md
 
-    :return: (train_images, train_labels, test_images, test_labels)
+    Args:
+        validation_proportion: If not None, extract this much data from the training set and return it as a separate
+            validation set
+        validation_seed: seed/state for selecting validation data
+
+
+    :return: (train_images, train_labels, test_images, test_labels) if validation_proportion=None or zero, otherwise
+        returns (trainimages, train_labels, val_images, val_labels, test_images, test_labels)
     """
+
     if os.path.exists("data/fashion"):
         print("data folder already exists")
     else:
@@ -46,9 +55,10 @@ def load_fashion_mnist(validation_proportion=None, validation_seed=None):
     if validation_proportion is None or validation_proportion == 0:
         return train_images, train_labels, test_images, test_labels
     else:
-        (train_images, train_labels, val_images, val_labels) = _split_dataset(train_images, train_labels,
-                                                                              val_prop=validation_proportion,
-                                                                              seed=validation_seed)
+        print('stop here')
+        (train_images, val_images,  train_labels, val_labels) = train_test_split(train_images, train_labels,
+                                                                                 random_state=validation_seed,
+                                                                                 test_size=validation_proportion)
         return train_images, train_labels, val_images, val_labels, test_images, test_labels
 
 
@@ -57,8 +67,17 @@ def load_mnist(validation_proportion=None, validation_seed=None):
     Get the MNIST training data (downloading it if it is not already accessible),
     and return it as NumPy arrays
 
-    :return: (train_images, train_labels, test_images, test_labels)
+
+    Args:
+        validation_proportion: If not None, extract this much data from the training set and return it as a separate
+            validation set
+        validation_seed: seed/state for selecting validation data
+
+
+    :return: (train_images, train_labels, test_images, test_labels) if validation_proportion=None or zero, otherwise
+        returns (trainimages, train_labels, val_images, val_labels, test_images, test_labels)
     """
+
     if os.path.exists("data/"):
         print("data folder already exists")
     else:
@@ -92,9 +111,9 @@ def load_mnist(validation_proportion=None, validation_seed=None):
     if validation_proportion is None or validation_proportion == 0:
         return train_images, train_labels, test_images, test_labels
     else:
-        (train_images, train_labels, val_images, val_labels) = _split_dataset(train_images, train_labels,
-                                                                              val_prop=validation_proportion,
-                                                                              seed=validation_seed)
+        (train_images, val_images, train_labels, val_labels) = train_test_split(train_images, train_labels,
+                                                                                random_state=validation_seed,
+                                                                                test_size=validation_proportion)
         return train_images, train_labels, val_images, val_labels, test_images, test_labels
 
 
@@ -122,26 +141,6 @@ def _load_label(filename):
     data = np.frombuffer(f.read(), np.uint8, offset=8)
     # The labels are vectors of integers now, that's exactly what we want.
     return data
-
-
-def _split_dataset(data, labels, val_prop, seed=None):
-    """Split a data set in two (i.e., train and validation)
-    Args:
-        data:  Data set (examples X dims)
-        labels:  Corresponding class labels (examples X 1)
-        val_prop: Proportion of examples reserved for the validation set (0-1)
-        seed: If not None, this int/array will be used to seed the RNG that selects the samples
-    Returns:
-        (train_data, train_labels, val_data, val_labels)
-
-    Note: The data in each new set is a copy of the original, not a view
-
-    """
-    rng = np.random.RandomState(seed)
-    ix = rng.permutation(data.shape[0])
-
-    n_val = np.floor(data.shape[0] * val_prop).astype('int')
-    return data[ix[n_val:], :], labels[ix[n_val:]].copy(), data[ix[:n_val], :].copy(), labels[ix[:n_val]].copy(),
 
 
 
