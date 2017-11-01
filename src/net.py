@@ -552,7 +552,9 @@ class Network(object):
             batch_ratio = 1.0 / train_x.shape[0]
             print('Warning: Batch ratio too small. Changing to {:.5f}'.format(batch_ratio))
         try:
-            fig_number = plt.gcf().number + 1 if plt.fignum_exists(1) else 1
+            if plot:
+                fig_number = plt.gcf().number + 1 if plt.fignum_exists(1) else 1
+
             for epoch in range(epochs):
                 epoch_time = time.time()
                 print("--> Epoch: {}/{}".format(
@@ -774,8 +776,8 @@ class Network(object):
 
         json_file = "{}_metadata.json".format(file_path)
         print('Saving metadata to {}'.format(json_file))
-        with open(json_file, 'w') as file:
-            json.dump(config, file)
+        with open(json_file, 'w') as f:
+            json.dump(config, f)
 
 
 if __name__ == "__main__":
