@@ -1,14 +1,14 @@
 import numpy as np
 
-from src.net import Network
+from vulcanai.net import Network
 
 import theano.tensor as T
 
-from src.utils import get_one_hot
+from vulcanai.utils import get_one_hot
 
-from src import mnist_loader
+from vulcanai import mnist_loader
 
-from src.model_tests import run_test
+from vulcanai.model_tests import run_test
 
 (train_images, train_labels, test_images, test_labels) = mnist_loader.load_fashion_mnist()
 
@@ -19,8 +19,8 @@ y = T.fmatrix('truth')
 
 network_dense_config = {
     'mode': 'dense',
-    'units': [1024, 1024, 784],
-    'dropouts': [0.2, 0.2, 0.2],
+    'units': [512],
+    'dropouts': [0.2],
 }
 
 dense_net = Network(
