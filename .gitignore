@@ -2,6 +2,8 @@ data
 figures
 models
 records
+dist
+/*.egg-info
 *.png
 *.jpg
 *.pdf

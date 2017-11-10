@@ -1,16 +1,16 @@
 import numpy as np
 
+from vulcanai.net import Network
+
 import theano.tensor as T
 
-from src.net import Network
+from vulcanai.utils import get_one_hot
 
-from src.snapshot_ensemble import Snapshot
+from vulcanai import mnist_loader
 
-from src.utils import get_one_hot
+from vulcanai.model_tests import run_test
 
-from src import mnist_loader
-
-from src.model_tests import run_test
+from vulcanai.utils import display_tsne
 
 (train_images, train_labels, test_images, test_labels) = mnist_loader.load_fashion_mnist()
 
@@ -18,6 +18,24 @@ from sklearn.utils import shuffle
 
 train_images, train_labels = shuffle(train_images, train_labels, random_state=0)
 
+# f_net = Network.load_model('models/20170828235548_fashion.network')
+# m_net = Network.load_model('models/20170828235251_mnist.network')
+# f_max_net = Network.load_model('models/20170902174725_1_dense_max.network')
+
+label_map = {
+    '0': 'T-shirt/top',
+    '1': 'Trouser',
+    '2': 'Pullover',
+    '3': 'Dress',
+    '4': 'Coat',
+    '5': 'Sandal',
+    '6': 'Shirt',
+    '7': 'Sneaker',
+    '8': 'Bag',
+    '9': 'Ankle boot'
+}
+
+display_tsne(train_images[:1000], train_labels[:1000], label_map)
 
 train_labels = get_one_hot(train_labels)
 test_labels = get_one_hot(test_labels)
@@ -66,17 +84,12 @@ dense_net = Network(
     pred_activation='softmax'
 )
 
-ensemble_dense = Snapshot(
-    name='snap_test',
-    template_network=dense_net,
-    n_snapshots=5
-)
-
 train_images = np.expand_dims(train_images, axis=1)
 test_images = np.expand_dims(test_images, axis=1)
-
-ensemble_dense.train(
-    epochs=500,
+# # Use to load model from disk
+# # dense_net = Network.load_model('models/20170704194033_3_dense_test.network')
+dense_net.train(
+    epochs=200,
     train_x=train_images[:50000],
     train_y=train_labels[:50000],
     val_x=train_images[50000:60000],
@@ -85,7 +98,7 @@ ensemble_dense.train(
     plot=False
 )
 
-ensemble_dense.save_record()
-# ensemble_dense = Snapshot.load_ensemble('models/20170713183810_snap1')
-run_test(ensemble_dense, test_x=test_images, test_y=test_labels)
-ensemble_dense.save_model()
+dense_net.save_record()
+
+run_test(dense_net, test_x=test_images, test_y=test_labels)
+dense_net.save_model()
