@@ -298,7 +298,7 @@ class Network(object):
                                                 input_var=self.input_var,
                                                 name="{}_input".format(
                                                      self.name))
-            print('\t\t', lasagne.layers.get_output_shape(network))
+            print('\t\t{}'.format(lasagne.layers.get_output_shape(network)))
             self.layers.append(network)
         else:
             network = self.input_network['network']. \
@@ -388,13 +388,12 @@ class Network(object):
             network.b.get_value().shape,
             **{self.name: True}
         )
-        print('\t\t'.format(lasagne.layers.get_output_shape(network)))
+        print('\t\t{}'.format(lasagne.layers.get_output_shape(network)))
         self.layers.append(network)
         return network
 
     def cross_entropy_loss(self, prediction, y):
         """Generate a cross entropy loss function."""
-
         print("Using categorical cross entropy loss")
         return lasagne.objectives.categorical_crossentropy(prediction,
                                                            y).mean()
