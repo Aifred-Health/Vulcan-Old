@@ -17,11 +17,22 @@ from datetime import datetime
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
 
 import matplotlib
 if "DISPLAY" not in os.environ:
     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
+
+def display_pca(train_x, train_y, label_map=None):
+    pca = PCA(n_components=2, random_state=0)
+    x_transform = pca.fit_transform(train_x)
+    _plot_reduction(
+        x_transform,
+        train_y,
+        label_map=label_map,
+        title='PCA Visualization')
 
 
 def display_tsne(train_x, train_y, label_map=None):
@@ -38,6 +49,14 @@ def display_tsne(train_x, train_y, label_map=None):
     """
     tsne = TSNE(n_components=2, random_state=0)
     x_transform = tsne.fit_transform(train_x)
+    _plot_reduction(
+        x_transform,
+        train_y,
+        label_map=label_map,
+        title='t-SNE Visualization')
+
+
+def _plot_reduction(x_transform, train_y, label_map, title='Dim Reduction'):
     y_unique = np.unique(train_y)
     if label_map is None:
         label_map = {str(i): str(i) for i in y_unique}
@@ -51,13 +70,14 @@ def display_tsne(train_x, train_y, label_map=None):
                     y=x_transform[train_y == cl, 1],
                     s=100,
                     c=colours[index],
+                    alpha=0.5,
                     marker='o',
                     edgecolors='none',
                     label=label_map[str(cl)])
-    plt.xlabel('X in t-SNE')
-    plt.ylabel('Y in t-SNE')
+    plt.xlabel('X')
+    plt.ylabel('Y')
     plt.legend(loc='upper right')
-    plt.title('t-SNE visualization')
+    plt.title(title)
     plt.show(False)
 
 

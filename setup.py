@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='vulcanai',
-    version='0.1rc',
+    version='0.1rc1',
     description='A high-level framework built on top of Theano and Lasagne'
                 ' using added functionality from Scikit-learn to provide '
                 'all of the tools needed for visualizing high-dimensional'
