@@ -29,8 +29,9 @@ import cPickle as pickle
 from sklearn.utils import shuffle
 
 import matplotlib
-if "DISPLAY" not in os.environ:
-    matplotlib.use('Agg')
+if os.name is not "posix":
+    if "DISPLAY" not in os.environ:
+        matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 sys.setrecursionlimit(5000)

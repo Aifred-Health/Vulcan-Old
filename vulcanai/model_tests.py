@@ -16,8 +16,9 @@ from copy import deepcopy
 from collections import Counter
 
 import matplotlib
-if "DISPLAY" not in os.environ:
-    matplotlib.use('Agg')
+if os.name is not "posix":
+    if "DISPLAY" not in os.environ:
+        matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
