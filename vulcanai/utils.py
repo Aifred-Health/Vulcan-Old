@@ -23,6 +23,8 @@ import matplotlib
 if os.name is not "posix":
     if "DISPLAY" not in os.environ:
         matplotlib.use('Agg')
+else:
+    matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 
@@ -299,35 +301,43 @@ def display_record(record=None, load_path=None):
         record: the record dictionary for dynamic graphs during training
         load_path: the saved record .pickle file to load
     """
+    title = 'Training curve'
     if load_path is not None:
         with open(load_path) as in_file:
             record = pickle.load(in_file)
-        plt.title('Training curve for model: {}'.format(
+        title = 'Training curve for model: {}'.format(
             os.path.basename(load_path))
-        )
-    else:
-        plt.title('Training curve')
 
     if record is None or not isinstance(record, dict):
         raise ValueError('No record exists and cannot be displayed.')
 
+    plt.subplot(1, 2, 1)
+    plt.title("{}: Error".format(title))
     train_error, = plt.plot(
         record['epoch'],
         record['train_error'],
         '-mo',
         label='Train Error'
     )
-    train_accuracy, = plt.plot(
-        record['epoch'],
-        record['train_accuracy'],
-        '-go',
-        label='Train Accuracy'
-    )
     validation_error, = plt.plot(
         record['epoch'],
         record['validation_error'],
         '-ro',
         label='Validation Error'
+    )
+    plt.xlabel("Epoch")
+    plt.ylabel("Cross entropy error")
+    plt.legend(handles=[train_error,
+                        validation_error],
+               loc=0)
+
+    plt.subplot(1, 2, 2)
+    plt.title("{}: Accuracy".format(title))
+    train_accuracy, = plt.plot(
+        record['epoch'],
+        record['train_accuracy'],
+        '-go',
+        label='Train Accuracy'
     )
     validation_accuracy, = plt.plot(
         record['epoch'],
@@ -336,12 +346,10 @@ def display_record(record=None, load_path=None):
         label='Validation Accuracy'
     )
     plt.xlabel("Epoch")
-    plt.ylabel("Cross entropy error")
-    # plt.ylim(0,1)
+    plt.ylabel("Accuracy")
+    plt.ylim(0,1)
 
-    plt.legend(handles=[train_error,
-                        train_accuracy,
-                        validation_error,
+    plt.legend(handles=[train_accuracy,
                         validation_accuracy],
                loc=0)
 

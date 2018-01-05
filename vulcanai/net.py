@@ -23,7 +23,6 @@ from ops import activations, optimizers
 
 import json
 
-
 import cPickle as pickle
 
 from sklearn.utils import shuffle
@@ -32,6 +31,8 @@ import matplotlib
 if os.name is not "posix":
     if "DISPLAY" not in os.environ:
         matplotlib.use('Agg')
+else:
+    matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 sys.setrecursionlimit(5000)
