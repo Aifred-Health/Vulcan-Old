@@ -20,6 +20,7 @@ from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 
 import matplotlib
+
 if os.name is not "posix":
     if "DISPLAY" not in os.environ:
         matplotlib.use('Agg')
@@ -219,7 +220,7 @@ def get_all_embedded_networks(network):
         return [network]
     else:
         return [network] + \
-            get_all_embedded_networks(network.input_network['network'])
+               get_all_embedded_networks(network.input_network['network'])
 
 
 def round_list(raw_list, decimals=4):
@@ -347,7 +348,7 @@ def display_record(record=None, load_path=None):
     )
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
-    plt.ylim(0,1)
+    plt.ylim(0, 1)
 
     plt.legend(handles=[train_accuracy,
                         validation_accuracy],
@@ -360,3 +361,59 @@ def display_record(record=None, load_path=None):
 def get_timestamp():
     """Return a 14 digit timestamp."""
     return datetime.now().strftime('%Y%m%d%H%M%S_')
+
+
+def stitch_datasets(df_list, on, index_list=None):
+    print(index_list)
+    # change column names to all caps
+    for i in range(len(df_list)):
+        df_list[i].columns = map(str.upper, df_list[i].columns)
+
+    # create an empty Dataframe and set first column to on
+    merged_df = pd.DataFrame(columns=[on])
+
+    # if indexes are not specified, create an added column for each feature
+    # otherwise, only create extra column for features in list
+    if index_list is None:
+        for i in range(len(df_list)):
+            col_list_1 = list(df_list[i].columns)
+            df = pd.DataFrame(1, index=df_list[i].index,
+                              columns=np.arange(len(df_list[i].columns) - 1))
+            col_list_2 = list(df.columns)
+            df_list[i] = pd.concat([df_list[i], df], axis=1)
+            concat_list = [None] * (len(col_list_1) + len(col_list_2))
+            concat_list[0] = col_list_1[0]
+            col_list_1 = col_list_1[1:(len(col_list_1))]
+            concat_list[1::2] = col_list_1
+            concat_list[2::2] = col_list_2
+            df_list[i] = df_list[i][concat_list]
+    else:
+        print(df_list[0])
+        print(df_list[1])
+        frequency = [0] * len(df_list)
+        for j in range(len(df_list)):
+            for k in range(len(index_list)):
+                for l in range(len(df_list[j].columns)):
+                    if (list(df_list[j].columns))[l] == index_list[k]:
+                        frequency[j] += 1
+        for i in range(len(df_list)):
+            if frequency[i] == 0:
+                df_list[i] = df_list[i]
+            else:
+                col_list_1 = list(df_list[i].columns)
+                df = pd.DataFrame(1, index=df_list[i].index, columns=np.arange(frequency[i]))
+                col_list_2 = list(df.columns)
+                df_list[i] = pd.concat([df_list[i], df], axis=1)
+                concat_list = [None] * (len(col_list_1) + len(col_list_2))
+                concat_list[0] = col_list_1[0]
+                col_list_1 = col_list_1[1:(len(col_list_1))]
+                concat_list[1::2] = col_list_1
+                concat_list[2::2] = col_list_2
+                df_list[i] = df_list[i][concat_list]
+
+    for j in range(len(df_list)):
+        merged_df = pd.merge(merged_df, df_list[j], how='outer', on=on)
+
+    merged_df.fillna(0, inplace=True)
+
+    return merged_df
