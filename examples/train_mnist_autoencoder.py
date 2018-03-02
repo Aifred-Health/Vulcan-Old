@@ -2,13 +2,13 @@ import numpy as np
 
 import theano.tensor as T
 
-from src.net import Network
+from vulcanai.net import Network
 
-from src.utils import get_one_hot
+from vulcanai.utils import get_one_hot
 
-from src import mnist_loader
+from vulcanai import mnist_loader
 
-from src.model_tests import run_test
+from vulcanai.model_tests import run_test
 
 (train_images, train_labels, test_images, test_labels) = mnist_loader.load_mnist()
 

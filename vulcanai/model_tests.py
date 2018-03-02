@@ -16,8 +16,11 @@ from copy import deepcopy
 from collections import Counter
 
 import matplotlib
-if "DISPLAY" not in os.environ:
-    matplotlib.use('Agg')
+if os.name is not "posix":
+    if "DISPLAY" not in os.environ:
+        matplotlib.use('Agg')
+else:
+    matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 
@@ -167,8 +170,8 @@ def run_test(network, test_x, test_y, figure_path='figures', plot=True):
         plt.clf()
         plt.plot(fpr, tpr, label=("AUC: {:.4f}".format(auc)))
         plt.title("ROC Curve for {}_{}".format(network.name, i))
-        plt.xlabel('False positive rate')
-        plt.ylabel('True positive rate')
+        plt.xlabel('1 - Specificity')
+        plt.ylabel('Sensitivity')
         plt.legend(loc='lower right')
         plt.ylim(0.0, 1.0)
         plt.xlim(0.0, 1.0)

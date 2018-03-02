@@ -3,6 +3,8 @@ import os
 
 import numpy as np
 
+import pandas as pd
+
 from math import sqrt, ceil, floor
 
 import theano
@@ -17,11 +19,26 @@ from datetime import datetime
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
 
 import matplotlib
-if "DISPLAY" not in os.environ:
-    matplotlib.use('Agg')
+
+if os.name is not "posix":
+    if "DISPLAY" not in os.environ:
+        matplotlib.use('Agg')
+else:
+    matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+
+
+def display_pca(train_x, train_y, label_map=None):
+    pca = PCA(n_components=2, random_state=0)
+    x_transform = pca.fit_transform(train_x)
+    _plot_reduction(
+        x_transform,
+        train_y,
+        label_map=label_map,
+        title='PCA Visualization')
 
 
 def display_tsne(train_x, train_y, label_map=None):
@@ -38,6 +55,14 @@ def display_tsne(train_x, train_y, label_map=None):
     """
     tsne = TSNE(n_components=2, random_state=0)
     x_transform = tsne.fit_transform(train_x)
+    _plot_reduction(
+        x_transform,
+        train_y,
+        label_map=label_map,
+        title='t-SNE Visualization')
+
+
+def _plot_reduction(x_transform, train_y, label_map, title='Dim Reduction'):
     y_unique = np.unique(train_y)
     if label_map is None:
         label_map = {str(i): str(i) for i in y_unique}
@@ -51,13 +76,14 @@ def display_tsne(train_x, train_y, label_map=None):
                     y=x_transform[train_y == cl, 1],
                     s=100,
                     c=colours[index],
+                    alpha=0.5,
                     marker='o',
                     edgecolors='none',
                     label=label_map[str(cl)])
-    plt.xlabel('X in t-SNE')
-    plt.ylabel('Y in t-SNE')
+    plt.xlabel('X')
+    plt.ylabel('Y')
     plt.legend(loc='upper right')
-    plt.title('t-SNE visualization')
+    plt.title(title)
     plt.show(False)
 
 
@@ -196,7 +222,7 @@ def get_all_embedded_networks(network):
         return [network]
     else:
         return [network] + \
-            get_all_embedded_networks(network.input_network['network'])
+               get_all_embedded_networks(network.input_network['network'])
 
 
 def round_list(raw_list, decimals=4):
@@ -278,35 +304,43 @@ def display_record(record=None, load_path=None):
         record: the record dictionary for dynamic graphs during training
         load_path: the saved record .pickle file to load
     """
+    title = 'Training curve'
     if load_path is not None:
         with open(load_path) as in_file:
             record = pickle.load(in_file)
-        plt.title('Training curve for model: {}'.format(
+        title = 'Training curve for model: {}'.format(
             os.path.basename(load_path))
-        )
-    else:
-        plt.title('Training curve')
 
     if record is None or not isinstance(record, dict):
         raise ValueError('No record exists and cannot be displayed.')
 
+    plt.subplot(1, 2, 1)
+    plt.title("{}: Error".format(title))
     train_error, = plt.plot(
         record['epoch'],
         record['train_error'],
         '-mo',
         label='Train Error'
     )
-    train_accuracy, = plt.plot(
-        record['epoch'],
-        record['train_accuracy'],
-        '-go',
-        label='Train Accuracy'
-    )
     validation_error, = plt.plot(
         record['epoch'],
         record['validation_error'],
         '-ro',
         label='Validation Error'
+    )
+    plt.xlabel("Epoch")
+    plt.ylabel("Cross entropy error")
+    plt.legend(handles=[train_error,
+                        validation_error],
+               loc=0)
+
+    plt.subplot(1, 2, 2)
+    plt.title("{}: Accuracy".format(title))
+    train_accuracy, = plt.plot(
+        record['epoch'],
+        record['train_accuracy'],
+        '-go',
+        label='Train Accuracy'
     )
     validation_accuracy, = plt.plot(
         record['epoch'],
@@ -315,12 +349,10 @@ def display_record(record=None, load_path=None):
         label='Validation Accuracy'
     )
     plt.xlabel("Epoch")
-    plt.ylabel("Cross entropy error")
-    # plt.ylim(0,1)
+    plt.ylabel("Accuracy")
+    plt.ylim(0, 1)
 
-    plt.legend(handles=[train_error,
-                        train_accuracy,
-                        validation_error,
+    plt.legend(handles=[train_accuracy,
                         validation_accuracy],
                loc=0)
 
@@ -331,3 +363,59 @@ def display_record(record=None, load_path=None):
 def get_timestamp():
     """Return a 14 digit timestamp."""
     return datetime.now().strftime('%Y%m%d%H%M%S_')
+
+
+def stitch_datasets(df_list, on, index_list=None):
+    print(index_list)
+    # change column names to all caps
+    for i in range(len(df_list)):
+        df_list[i].columns = map(str.lower, df_list[i].columns)
+
+    # create an empty Dataframe and set first column to on
+    merged_df = pd.DataFrame(columns=[on])
+
+    # if indexes are not specified, create an added column for each feature
+    # otherwise, only create extra column for features in list
+    if index_list is None:
+        for i in range(len(df_list)):
+            col_list_1 = list(df_list[i].columns)
+            df = pd.DataFrame(1, index=df_list[i].index,
+                              columns=np.arange(len(df_list[i].columns) - 1))
+            col_list_2 = list(df.columns)
+            df_list[i] = pd.concat([df_list[i], df], axis=1)
+            concat_list = [None] * (len(col_list_1) + len(col_list_2))
+            concat_list[0] = col_list_1[0]
+            col_list_1 = col_list_1[1:(len(col_list_1))]
+            concat_list[1::2] = col_list_1
+            concat_list[2::2] = col_list_2
+            df_list[i] = df_list[i][concat_list]
+    else:
+        print(df_list[0])
+        print(df_list[1])
+        frequency = [0] * len(df_list)
+        for j in range(len(df_list)):
+            for k in range(len(index_list)):
+                for l in range(len(df_list[j].columns)):
+                    if (list(df_list[j].columns))[l] == index_list[k]:
+                        frequency[j] += 1
+        for i in range(len(df_list)):
+            if frequency[i] == 0:
+                df_list[i] = df_list[i]
+            else:
+                col_list_1 = list(df_list[i].columns)
+                df = pd.DataFrame(1, index=df_list[i].index, columns=np.arange(frequency[i]))
+                col_list_2 = list(df.columns)
+                df_list[i] = pd.concat([df_list[i], df], axis=1)
+                concat_list = [None] * (len(col_list_1) + len(col_list_2))
+                concat_list[0] = col_list_1[0]
+                col_list_1 = col_list_1[1:(len(col_list_1))]
+                concat_list[1::2] = col_list_1
+                concat_list[2::2] = col_list_2
+                df_list[i] = df_list[i][concat_list]
+
+    for j in range(len(df_list)):
+        merged_df = pd.merge(merged_df, df_list[j], how='outer', on=on)
+
+    merged_df.fillna(0, inplace=True)
+
+    return merged_df
