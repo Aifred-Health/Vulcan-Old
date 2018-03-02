@@ -3,6 +3,8 @@ import os
 
 import numpy as np
 
+import pandas as pd
+
 from math import sqrt, ceil, floor
 
 import theano
@@ -367,7 +369,7 @@ def stitch_datasets(df_list, on, index_list=None):
     print(index_list)
     # change column names to all caps
     for i in range(len(df_list)):
-        df_list[i].columns = map(str.upper, df_list[i].columns)
+        df_list[i].columns = map(str.lower, df_list[i].columns)
 
     # create an empty Dataframe and set first column to on
     merged_df = pd.DataFrame(columns=[on])
