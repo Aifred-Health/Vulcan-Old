@@ -43,8 +43,9 @@ class Network(object):
 
     def __init__(self, name, dimensions, input_var, y, config,
                  input_network=None, num_classes=None, activation='rectify',
-                 pred_activation='softmax', optimizer='adam',
+                 pred_activation='softmax', optimizer='adam', stopping_rule='best_validation',
                  learning_rate=0.001):
+
         """
         Initialize network specified.
 
@@ -71,6 +72,7 @@ class Network(object):
         self.config = config
         self.learning_rate = learning_rate
         self.init_learning_rate = learning_rate
+        self.stopping_rule = stopping_rule
         if not optimizers.get(optimizer, False):
             raise ValueError(
                 'Invalid optimizer option: {}. '
@@ -127,11 +129,13 @@ class Network(object):
             [i for i in [self.input_var] if i],
             lasagne.layers.get_output(self.network, deterministic=True))
         self.record = None
+
         try:
             self.timestamp
         except AttributeError:
             self.timestamp = get_timestamp()
         self.minibatch_iteration = 0
+
 
     def create_network(self, config, nonlinearity):
         """
@@ -176,6 +180,7 @@ class Network(object):
             )
 
         return network
+
 
     def create_conv_network(self, filters, filter_size, stride,
                             pool_mode, pool_stride, nonlinearity):
@@ -276,6 +281,7 @@ class Network(object):
             self.layers.append(network)
             print('\t\t{}'.format(lasagne.layers.get_output_shape(network)))
         return network
+
 
     def create_dense_network(self, units, dropouts, nonlinearity):
         """
@@ -493,6 +499,7 @@ class Network(object):
         return theano.function([self.input_var, self.y],
                                [self.val_cost, val_acc])
 
+
     def forward_pass(self, input_data, convert_to_class=False):
         """
         Allow the implementer to quickly get outputs from the network.
@@ -509,6 +516,7 @@ class Network(object):
             return get_class(self.output(input_data))
         else:
             return self.output(input_data)
+
 
     def train(self, epochs, train_x, train_y, val_x, val_y,
               batch_ratio=0.1, plot=True, change_rate=None):
@@ -539,6 +547,12 @@ class Network(object):
             validation_error=[],
             validation_accuracy=[]
         )
+
+        if self.stopping_rule == 'best_validation':
+            best_state = None
+            best_epoch = None
+            best_error = float('inf')
+
 
         output_shape = lasagne.layers.get_output_shape(self.network)
         if output_shape[1:] != train_y.shape[1:]:
@@ -594,9 +608,15 @@ class Network(object):
                         )
                         # print('to {}'.format(self.learning_rate))
                     self.minibatch_iteration += 1
+
                 train_error, train_accuracy = self.validator(train_x, train_y)
                 validation_error, validation_accuracy = self.validator(val_x,
                                                                        val_y)
+
+                if self.stopping_rule == 'best_validation' and validation_error < best_error:
+                    best_state = self.__getstate__()
+                    best_epoch = epoch
+                    best_error = validation_error
 
                 self.record['epoch'].append(epoch)
                 self.record['train_error'].append(train_error)
@@ -626,10 +646,17 @@ class Network(object):
                     plt.figure(fig_number)
                     display_record(record=self.record)
 
+
+
         except KeyboardInterrupt:
             print("\n\n**********Training stopped prematurely.**********\n\n")
         finally:
             self.timestamp = get_timestamp()
+
+            if self.stopping_rule == 'best_validation':
+                print("STOPPING RULE: Rewinding to epoch {} which had the lowest validation error: {}".format(best_epoch, best_error))
+                self.__setstate__(best_state)
+
 
     def __getstate__(self):
         """Pickle save config."""
