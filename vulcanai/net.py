@@ -43,7 +43,7 @@ class Network(object):
 
     def __init__(self, name, dimensions, input_var, y, config,
                  input_network=None, num_classes=None, activation='rectify',
-                 pred_activation='softmax', optimizer='adam', stopping_rule='best_validation',
+                 pred_activation='softmax', optimizer='adam', stopping_rule='best_validation_error',
                  learning_rate=0.001):
 
         """
@@ -548,11 +548,15 @@ class Network(object):
             validation_accuracy=[]
         )
 
-        if self.stopping_rule == 'best_validation':
+        if self.stopping_rule == 'best_validation_error':
             best_state = None
             best_epoch = None
             best_error = float('inf')
 
+        elif self.stopping_rule == 'best_validation_accuracy':
+            best_state = None
+            best_epoch = None
+            best_accuracy = 0.0
 
         output_shape = lasagne.layers.get_output_shape(self.network)
         if output_shape[1:] != train_y.shape[1:]:
@@ -613,10 +617,15 @@ class Network(object):
                 validation_error, validation_accuracy = self.validator(val_x,
                                                                        val_y)
 
-                if self.stopping_rule == 'best_validation' and validation_error < best_error:
+                if self.stopping_rule == 'best_validation_error' and validation_error < best_error:
                     best_state = self.__getstate__()
                     best_epoch = epoch
                     best_error = validation_error
+
+                elif self.stopping_rule == 'best_validation_accuracy' and validation_accuracy > best_accuracy:
+                    best_state = self.__getstate__()
+                    best_epoch = epoch
+                    best_accuracy = validation_accuracy
 
                 self.record['epoch'].append(epoch)
                 self.record['train_error'].append(train_error)
@@ -653,8 +662,12 @@ class Network(object):
         finally:
             self.timestamp = get_timestamp()
 
-            if self.stopping_rule == 'best_validation':
-                print("STOPPING RULE: Rewinding to epoch {} which had the lowest validation error: {}".format(best_epoch, best_error))
+            if self.stopping_rule == 'best_validation_error':
+                print("STOPPING RULE: Rewinding to epoch {} which had the lowest validation error: {}\n".format(best_epoch, best_error))
+                self.__setstate__(best_state)
+
+            elif self.stopping_rule == 'best_validation_accuracy':
+                print("STOPPING RULE: Rewinding to epoch {} which had the highest validation accuracy: {}\n".format(best_epoch, best_accuracy))
                 self.__setstate__(best_state)
 
 
