@@ -198,7 +198,7 @@ def run_test(network, test_x, test_y, figure_path='figures', plot=True):
 
 
 def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
-                      plot=False):
+                      batch_ratio=1.0, plot=False):
     """
     Conduct k fold cross validation on a network.
 
@@ -207,6 +207,7 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
         train_x: ndarray of shape (batch, features), train samples
         train_y: ndarray of shape(batch, classes), train labels
         k: int, how many folds to run
+        batch_ratio: float, 0-1 for % of total to allocate for a batch
         epochs: int, number of epochs to train each fold
 
     Returns final metric dictionary
@@ -236,7 +237,7 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
             train_y=tra_y,
             val_x=val_x,
             val_y=val_y,
-            batch_ratio=0.05,
+            batch_ratio=batch_ratio,
             plot=plot
         )
         results += [Counter(run_test(
@@ -245,6 +246,7 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
             val_y,
             figure_path='figures/kfold_{}{}'.format(timestamp, network.name),
             plot=plot))]
+        del net
     aggregate_results = reduce(lambda x, y: x + y, results)
 
     print ('\nFinal Cross validated results')
