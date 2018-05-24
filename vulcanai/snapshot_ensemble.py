@@ -6,16 +6,16 @@ Described https://arxiv.org/abs/1704.00109. Using the aifred Network API.
 
 import os
 
-import numpy as np
+import json
 
 from copy import deepcopy
+
+import numpy as np
 
 from utils import get_timestamp
 from utils import get_class
 
 from net import Network
-
-import json
 
 
 class Snapshot(object):
@@ -109,7 +109,7 @@ class Snapshot(object):
         prediction_collection = []
         for net in self.networks[-m:]:
             prediction_collection += [net.forward_pass(input_data=input_data,
-                                      convert_to_class=False)]
+                                                       convert_to_class=False)]
         prediction_collection = np.array(prediction_collection)
         raw_prediction = np.mean(prediction_collection, axis=0,
                                  dtype='float32')

@@ -27,7 +27,7 @@ def load_fashion_mnist():
 
     if not os.path.exists("data/fashion/train-labels-idx1-ubyte.gz"):
         print("No fashion MNIST training labels found--downloading")
-        _download_file("http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/train-labels-idx1-ubyte.gz",'data/fashion')
+        _download_file("http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/train-labels-idx1-ubyte.gz", 'data/fashion')
     print ('Loading training labels...')
     train_labels = _load_label('data/fashion/train-labels-idx1-ubyte.gz')
 
@@ -115,6 +115,7 @@ def _load_label(filename):
 def main():
     """Totally useless main."""
     (train_iamges, train_labels, t10k_images, t10k_labels) = load_mnist()
+
 
 if __name__ == "__main__":
     main()

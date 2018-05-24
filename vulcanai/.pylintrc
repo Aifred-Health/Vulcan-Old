@@ -22,4 +22,4 @@ unsafe-load-any-extension=no
 confidence=
 
 # Disable the message, report, category or checker with the given id(s).
-disable = superfluous-parens, invalid-name, line-too-long,  relative-import, too-many-instance-attributes, too-many-arguments, too-many-locals, too-many-function-args, too-many-nested-blocks
+disable = superfluous-parens, invalid-name, line-too-long,  relative-import, too-many-instance-attributes, too-many-arguments, too-many-locals, too-many-function-args, too-many-nested-blocks, consider-using-enumerate, too-many-statements

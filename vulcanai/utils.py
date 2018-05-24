@@ -1,26 +1,27 @@
 """Contains auxilliary methods."""
 import os
 
+from math import sqrt, ceil, floor
+
+import pickle
+
+from datetime import datetime
+
 import numpy as np
 
 import pandas as pd
-
-from math import sqrt, ceil, floor
 
 import theano
 import theano.tensor as T
 
 import lasagne
 
-import pickle
-
-from datetime import datetime
-
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 
+import matplotlib.pyplot as plt
 import matplotlib
 
 if os.name is not "posix":
@@ -28,10 +29,17 @@ if os.name is not "posix":
         matplotlib.use('Agg')
 else:
     matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
 
 
 def display_pca(train_x, train_y, label_map=None):
+    """
+    Principal component analysis visualization.
+
+    Args:
+        train_x: 2d numpy array (batch, features) of samples
+        train_y: 2d numpy array (batch, labels) for samples
+        label_map: a dict of labelled (str(int), string) key, value pairs
+    """
     pca = PCA(n_components=2, random_state=0)
     x_transform = pca.fit_transform(train_x)
     _plot_reduction(
@@ -77,8 +85,6 @@ def _plot_reduction(x_transform, train_y, label_map, title='Dim Reduction'):
                     s=100,
                     c=colours[index],
                     alpha=0.5,
-                    marker='o',
-                    edgecolors='none',
                     label=label_map[str(cl)])
     plt.xlabel('X')
     plt.ylabel('Y')

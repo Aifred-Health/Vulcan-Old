@@ -1,27 +1,27 @@
 """Tests used to evaluate networks."""
 import os
 
-import numpy as np
-
-from utils import get_class
-from utils import get_confusion_matrix
-from utils import round_list
-from utils import get_one_hot
-from utils import get_timestamp
-
-from sklearn import metrics
-
 from copy import deepcopy
 
 from collections import Counter
 
 import matplotlib
+import matplotlib.pyplot as plt
+
+import numpy as np
+
+from utils import get_class
+from utils import get_confusion_matrix
+from utils import round_list
+from utils import get_timestamp
+
+from sklearn import metrics
+
 if os.name is not "posix":
     if "DISPLAY" not in os.environ:
         matplotlib.use('Agg')
 else:
     matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
 
 
 def run_test(network, test_x, test_y, figure_path='figures', plot=True):
@@ -125,12 +125,12 @@ def run_test(network, test_x, test_y, figure_path='figures', plot=True):
             figure_path,
             network.timestamp,
             network.name)
-        )
+                   )
     print ('Saving ROC figures to folder: {}/{}{}'.format(
         figure_path,
         network.timestamp,
         network.name)
-    )
+          )
 
     plt.figure()
     plt.title("Confusion matrix for {}".format(network.name))

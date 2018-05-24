@@ -104,5 +104,6 @@ class AlphaDropoutLayer(Layer):
 
             return a * (input * mask + self.alpha * (1 - mask)) + b
 
+
 if __name__ == "__main__":
     pass

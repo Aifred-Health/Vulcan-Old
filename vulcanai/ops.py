@@ -1,7 +1,8 @@
 """Contains activation functions and gradient descent optimizers."""
+
 from lasagne.nonlinearities import sigmoid, softmax, rectify
-from selu import selu
 from lasagne.updates import sgd, adam
+from selu import selu
 
 activations = {
     "sigmoid": sigmoid,
