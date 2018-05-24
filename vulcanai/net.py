@@ -5,7 +5,8 @@ import time
 import os
 
 import sys
-
+import json
+import cPickle as pickle
 import numpy as np
 
 import lasagne
@@ -21,19 +22,16 @@ from selu import AlphaDropoutLayer
 
 from ops import activations, optimizers
 
-import json
-
-import cPickle as pickle
-
 from sklearn.utils import shuffle
-
+import matplotlib.pyplot as plt
 import matplotlib
+
 if os.name is not "posix":
     if "DISPLAY" not in os.environ:
         matplotlib.use('Agg')
 else:
     matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
+
 
 sys.setrecursionlimit(5000)
 
@@ -218,7 +216,7 @@ class Network(object):
             network = lasagne.layers.InputLayer(shape=self.input_dimensions,
                                                 input_var=self.input_var,
                                                 name="{}_input".format(
-                                                     self.name))
+                                                    self.name))
             print('\t\t{}'.format(lasagne.layers.get_output_shape(network)))
             self.layers.append(network)
         else:
@@ -257,7 +255,7 @@ class Network(object):
                 pad='same',
                 nonlinearity=nonlinearity,
                 name="{}_conv{}D_{}".format(
-                     self.name, conv_dim, i)
+                    self.name, conv_dim, i)
             )
             network.add_param(
                 network.W,
@@ -276,7 +274,7 @@ class Network(object):
                 pool_size=p_s,
                 mode=pool_mode,
                 name="{}_{}pool".format(
-                     self.name, pool_mode)
+                    self.name, pool_mode)
             )
             self.layers.append(network)
             print('\t\t{}'.format(lasagne.layers.get_output_shape(network)))
@@ -305,7 +303,7 @@ class Network(object):
             network = lasagne.layers.InputLayer(shape=self.input_dimensions,
                                                 input_var=self.input_var,
                                                 name="{}_input".format(
-                                                     self.name))
+                                                    self.name))
             print('\t\t{}'.format(lasagne.layers.get_output_shape(network)))
             self.layers.append(network)
         else:
@@ -488,7 +486,7 @@ class Network(object):
                 # check the accuracy of the prediction
                 if self.num_classes > 1:
                     val_acc = T.mean(T.eq(T.argmax(val_prediction, axis=1),
-                                     T.argmax(self.y, axis=1)),
+                                          T.argmax(self.y, axis=1)),
                                      dtype=theano.config.floatX)
                 elif self.num_classes == 1:
                     val_acc = T.mean(T.eq(T.round(val_prediction,
