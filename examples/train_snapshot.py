@@ -1,20 +1,16 @@
 import numpy as np
 
+from sklearn.utils import shuffle
+
 import theano.tensor as T
 
 from vulcanai.net import Network
-
 from vulcanai.snapshot_ensemble import Snapshot
-
 from vulcanai.utils import get_one_hot
-
+from vulcanai.model_tests import run_test
 from vulcanai import mnist_loader
 
-from vulcanai.model_tests import run_test
-
 (train_images, train_labels, test_images, test_labels) = mnist_loader.load_fashion_mnist()
-
-from sklearn.utils import shuffle
 
 train_images, train_labels = shuffle(train_images, train_labels, random_state=0)
 
