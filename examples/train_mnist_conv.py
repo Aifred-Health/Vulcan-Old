@@ -8,6 +8,7 @@ from vulcanai.net import Network
 from vulcanai.utils import get_one_hot
 from vulcanai.model_tests import run_test
 from vulcanai.utils import display_tsne
+
 from vulcanai import mnist_loader
 
 
