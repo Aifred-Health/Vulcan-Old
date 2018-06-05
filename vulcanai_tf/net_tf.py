@@ -2,7 +2,9 @@ import numpy as np
 
 import tensorflow as tf
 
-from vulcanai.ops import activations, optimizers
+from ops_tf import activations, optimizers
+
+from tf_utils import get_timestamp
 
 import cPickle as pickle
 
@@ -58,7 +60,7 @@ class Network(object):
         self.learning_rate = learning_rate
         self.init_learning_rate = learning_rate
         self.stopping_rule = stopping_rule
-        
+
         self.input_network = input_network
         self.layers = []
         self.cost = None
@@ -70,8 +72,6 @@ class Network(object):
                self.input_network.get('get_params', None) is not None:
                 self.input_var = None   # NOTE: Write a Tensorflow replacement code
                 self.input_dim = None   # NOTE: Write a Tensorflow replacement code
-                if self.input_network.get('get_params', False):
-                    self.input_params = self.input_network['network'].params
 
             else:
                 raise ValueError(
@@ -86,18 +86,23 @@ class Network(object):
             config=self.config,
             nonlinearity=activations[self.activation])
 
-        #if self.y is not None:
-        #    self.trainer =
-        #    self.validator
+        if self.y is not None:
+            self.trainer = self.create_trainer()
+            self.validator = self.create_validator()
+        try:
+            self.timestamp
+        except AttributeError:
+            self.timestamp = get_timestamp()
+        self.minibatch_iteration = 0
 
 
     def create_network(self, config, nonlinearity):
 
         import jsonschema
-        import schemas
+        import schemas_tf
         mode = config.get('mode')
         if mode == 'dense':
-            jsonschema.validate(config, schemas.dense_network)
+            jsonschema.validate(config, schemas_tf.dense_network)
 
             network = self.build_dense_network_tf(
                 units=config.get('units'),
@@ -105,7 +110,7 @@ class Network(object):
                 nonlinearity=nonlinearity
             )
         elif mode == 'conv':
-            jsonschema.validate(config, schemas.conv_network)
+            jsonschema.validate(config, schemas_tf.conv_network)
 
             network = self.create_conv_network(
                 filters=config.get('filters'),
@@ -119,11 +124,13 @@ class Network(object):
             raise ValueError('Mode {} not supported.'.format(mode))
 
         if self.num_classes is not None and self.num_classes != 0:
-            network = self.create_classification_layer(
-                network,
-                num_classes=self.num_classes,
-                nonlinearity=activations[self.pred_activation]
-            )
+            with tf.variable_scope('Input_layer'):
+                print('\tClassification Layer:')
+                network = self.create_classification_layer(
+                    network,
+                    num_classes=self.num_classes,
+                    nonlinearity=activations[self.pred_activation]
+                )
 
         return network
 
@@ -427,15 +434,102 @@ class Network(object):
         self.layers.append(network)
         return network
 
+    def create_trainer(self):
+        """
+        Creates a summarizer to track the loss over time in TensorBoard.
+
+        Creates an optimizer and applies the gradients to all trainable variables.
+        The train_step returned by this function is  passed to the
+        `sess.run()` call to cause the model to train.
+
+        Returns:
+            train_step: The Op for training.
+        """
+        print("Creating {} Trainer...".format(self.name))
+        # get network output
+        logits = self.network
+
+        # calculate a loss function which has to be a scalar
+        if self.cost is None:
+            if self.num_classes is None or self.num_classes == 0:
+                self.cost = self.mse_loss(logits, self.y)
+            else:
+                self.cost = self.cross_entropy_loss(logits, self.y)
+        # Add a scalar summary for the snapshot loss.
+        tf.summary.scalar('loss', self.cost)
+        # calculate updates using ADAM optimization gradient descent
+        learning_rate = self.learning_rate
+        print "optimizer: ",  optimizers[self.optimizer]
+        if self.optimizer == 'adam':
+            optimizer = optimizers[self.optimizer](
+                            learning_rate=learning_rate,
+                            beta1=0.9,
+                            beta2=0.999,
+                            epsilon=1e-08
+            )
+        elif self.optimizer == 'sgd':
+            optimizer = optimizers[self.optimizer](
+                            learning_rate=learning_rate
+            )
+        else:
+            updates = None
+            ValueError("No optimizer found")
+
+        with tf.name_scope("train"):
+            # Variable to track the global step.
+            global_step = tf.Variable(0, name='global_step', trainable=False)
+            train_step = optimizer.minimize(self.cost, global_step=global_step)
+
+        return train_step
+
+    def create_validator(self):
+        """
+        Records the accuracy of the network.
+
+        Returns: A scalar float32 tensor with the number of examples
+                 that were predicted correctly.
+        """
+        print("Creating {} Validator...".format(self.name))
+        # create prediction
+        val_prediction = self.network
+
+        with tf.name_scope("accuracy"):
+            # check how much error in prediction
+            if self.val_cost is None:
+                if self.num_classes is None or self.num_classes == 0:
+                    self.val_cost = self.mse_loss(val_prediction, self.y)
+                    val_acc = tf.constant(0)
+                else:
+                    self.val_cost = self.cross_entropy_loss(val_prediction, self.y)
+                    # check the accuracy of the prediction
+                    if self.num_classes > 1:
+                        val_acc = tf.reduce_mean(tf.cast(tf.equal(
+                                              tf.argmax(val_prediction, axis=1),
+                                              tf.argmax(self.y, axis=1)),
+                                              tf.float32))
+                    elif self.num_classes == 1:
+                        val_acc = tf.reduce_mean(tf.cast(tf.equal(
+                                              tf.round(val_prediction), self.y),
+                                              tf.float32))
+            tf.summary.scalar("accuracy", val_acc)
+
+        return val_acc
+
     def cross_entropy_loss(self, prediction, y):
         """Generate a cross entropy loss function."""
         print("Using categorical cross entropy loss")
-        return  # NOTE: Write a Tensorflow replacement code
+        return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+                    logits=prediction,
+                    labels=y
+                    ))
 
     def mse_loss(self, prediction, y):
         """Generate mean squared error loss function."""
         print("Using Mean Squared error loss")
-        return  # NOTE: Write a Tensorflow replacement code
+        return tf.losses.mean_squared_error(
+                    predictions=prediction,
+                    labels=y
+                    )
 
     @classmethod
     def load_model(cls, load_path):

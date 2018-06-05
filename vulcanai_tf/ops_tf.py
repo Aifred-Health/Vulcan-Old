@@ -1,17 +1,16 @@
 """Contains activation functions and gradient descent optimizers."""
 
 import tensorflow as tf
-from tf.nn import sigmoid, softmax, selu, relu
-from tf.contrib.keras.optimizers import SGD, Adam
+
 
 activations = {
-    "sigmoid": sigmoid,
-    "softmax": softmax,
-    "rectify": relu,
-    "selu": selu
+    "sigmoid": tf.nn.sigmoid,
+    "softmax": tf.nn.softmax,
+    "rectify": tf.nn.relu,
+    "selu": tf.nn.selu
 }
 
 optimizers = {
-    "sgd": SGD,
-    "adam": Adam
+    "sgd": tf.train.GradientDescentOptimizer,
+    "adam": tf.train.AdamOptimizer
 }

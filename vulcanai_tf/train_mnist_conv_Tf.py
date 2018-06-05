@@ -36,18 +36,16 @@ label_map = {
 
 train_labels = get_one_hot(train_labels)
 test_labels = get_one_hot(test_labels)
-print len(train_images[0])
+
 train_images = tf.reshape(train_images, (train_images.shape[0], 28, 28))
 test_images = tf.reshape(test_images, (test_images.shape[0], 28, 28))
 
-print train_images.shape
 
 with tf.Graph().as_default() as tf_graph:
     sess = tf.InteractiveSession()
-    input_var = tf.placeholder(tf.float32, shape=([None, 28,28,1]),
+    input_var = tf.placeholder(tf.float32, shape=([None, 28, 28, 1]),
                                name='input')
-    y = tf.placeholder(tf.float32, shape=([None, 10]),
-                       name='truth')
+    y = tf.placeholder(tf.float32, name='truth')
 
     network_conv_config = {
         'mode': 'conv',

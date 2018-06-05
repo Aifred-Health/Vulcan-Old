@@ -1,5 +1,7 @@
 import tensorflow as tf
 
+from datetime import datetime
+
 
 def init_placeholders(feature_size, num_labels, batch_size = None):
     """Generate placeholder variables to represent the input tensors.
@@ -14,11 +16,16 @@ def init_placeholders(feature_size, num_labels, batch_size = None):
     # Note that the shapes of the placeholders match the shapes of the full
     # image and label tensors, except the first dimension is now batch_size
     # rather than the full size of the train or test data sets.
-    images_placeholder = tf.placeholder(tf.float32, shape=([batch_size,
+    X_placeholder = tf.placeholder(tf.float32, shape=([batch_size,
                                                             feature_size]),
                                                             name = 'input')
-    labels_placeholder = tf.placeholder(tf.float32, shape=([batch_size,
+    Y_placeholder = tf.placeholder(tf.float32, shape=([batch_size,
                                                             num_labels]),
                                                             name = 'truth')
 
-    return images_placeholder, labels_placeholder
+    return X_placeholder, Y_placeholder
+
+
+def get_timestamp():
+    """Return a 14 digit timestamp."""
+    return datetime.now().strftime('%Y%m%d%H%M%S_')
