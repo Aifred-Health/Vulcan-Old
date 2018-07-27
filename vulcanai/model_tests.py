@@ -240,6 +240,8 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
             batch_ratio=batch_ratio,
             plot=plot
         )
+        # filter_matched_medications(net.forward_pass(val_x), val_y)
+        # calculate_improvement_score(val_x, net.forward_pass(val_x), val_y)
         results += [Counter(run_test(
             net,
             val_x,
@@ -256,3 +258,40 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
         print ('{}: {:.4f}'.format(metric_key, aggregate_results[metric_key]))
 
     return aggregate_results
+
+def get_drug_scores()
+
+def filter_matched_medications()
+
+def calculate_improvement_score(baseline_score, prediction, target):
+    #Should be passed the test predictions and the test targets (truth)
+
+    #Calculate drop in QIDS score with Targets. avg across all: V_t
+        # (baseline_score - target).mean()
+
+    #Find subset of predictions where medication predicted is matched with
+    #On the subset, calculate drop in QIDS score. avg across all: V_p
+
+    #Find improvement score = V_t - V_p
+
+    #Return improvement score
+    return None
+
+def bootfold_p_estimate(network, data_matrix, n_samples=2, k_folds=10):
+    """
+    Bootstrap k-fold CV p-value estimation for improvement scores.
+    Try some sort of stratified bootstrapping for class imbalance
+    
+    Args:
+        network: a Network object
+        data_matrix: ndarray with index on 0th dimension
+        n_samples: how many bootstrap sampls to generate
+        k_folds: how many cross validated folds per bootstrap sample
+    """
+
+    sample_size = data_matrix.shape[0]
+    for _ in range(n_samples):
+        sample = data_matrix[np.random.choice(sample_size, size=sample_size, replace=True), :]
+        print (sample.shape)
+
+        k_fold_validation(network, train_x=_, train_y=_, k=k_folds, epochs=10)
