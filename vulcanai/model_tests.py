@@ -3,6 +3,8 @@ import os
 
 import numpy as np
 
+import collections
+
 from utils import get_class
 from utils import get_confusion_matrix
 from utils import round_list
@@ -198,7 +200,7 @@ def run_test(network, test_x, test_y, figure_path='figures', plot=True):
 
 
 def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
-                      batch_ratio=1.0, plot=False):
+                      batch_ratio=1.0, plot=False, **kwargs):
     """
     Conduct k fold cross validation on a network.
 
@@ -212,12 +214,14 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
 
     Returns final metric dictionary
     """
+    df_testSet = kwargs[0]
     try:
         network.save_name
     except:
         network.save_model()
     chunk_size = int((train_x.shape[0]) / k)
     results = []
+    ls_improvementScores = []
     timestamp = get_timestamp()
     for i in range(k):
         val_x = train_x[i * chunk_size:(i + 1) * chunk_size]
@@ -240,8 +244,8 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
             batch_ratio=batch_ratio,
             plot=plot
         )
-        # filter_matched_medications(net.forward_pass(val_x), val_y)
-        # calculate_improvement_score(val_x, net.forward_pass(val_x), val_y)
+        foldScore = calculate_improvement_score(network=network, df_base_target=df_testSet)
+        ls_improvementScores.append(foldScore)
         results += [Counter(run_test(
             net,
             val_x,
@@ -251,19 +255,61 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
         del net
     aggregate_results = reduce(lambda x, y: x + y, results)
 
+    n = len(ls_improvementScores)
+    sigma = np.std(ls_improvementScores)
+    ybar = np.mean(ls_improvementScores)
+    z_score = (ybar - 0)/np.sqrt([sigma^2]/n)
+    p_value = scipy.stats.norm.sf(abs(z_score))
+
     print ('\nFinal Cross validated results')
     print ('-----------------------------')
     for metric_key in aggregate_results.keys():
         aggregate_results[metric_key] /= float(k)
         print ('{}: {:.4f}'.format(metric_key, aggregate_results[metric_key]))
 
+    #Return p_value
     return aggregate_results
 
-def get_drug_scores()
+def get_drug_scores(network, df):
+    ls_drugs = [1.0, 2.0, 3.0, 4.0]
+    dct_armTest = collections.defaultdict()
+    for index, row df.iterrows():
+        dct_armTest[index] = {}
+    for index, row in df.iterrows():
+        subjData = df.loc[[index]]
+        subjFeat = subjData.drop('qids_final_score')
+        nn_subjFeat = np.array(subjFeat, dtype=np.float32)
+        nn_subjScore = np.expand_dims(np.array(subjData.qids_final_score, dtype=np.float32), axis=1)
+        subjScoreClass = network.forward_pass(input_data=nn_subjFeat, convert_to_class=True)
+        dct_armTest[index][row.drug] = subjScoreClass[0]
+        for newDrug in ls_drugs:
+            if newDrug != row.drug:
+                subjData['drug'] = newDrug
+                subjFeat = subjData.drop('qids_final_score')
+                nn_subjFeat = np.array(subjFeat)
 
-def filter_matched_medications()
+                subjScoreClass = network.forward_pass(input_data=nn_subjFeat, dtype=np.float32)
+                dct_armTest[index][newDrug] = subjScoreClass[0]
+    return dct_armTest
 
-def calculate_improvement_score(baseline_score, prediction, target):
+def filter_matched_medications(dct_scores, df_testAns):
+    dct_DrugScore = {}
+    filteredSubj = {}
+    for key in dct_scores.keys():
+        drugOne = dct_scores[key][1.0]
+        drugTwo = dct_scores[key][2.0]
+        drugThree = dct_scores[key][3.0]
+        drugFour = dct_scores[key][4.0]
+        ls_scores = [drugOne, drugTwo, drugThree, drugFour]
+        minScoreInd = np.argmin(ls_scores)
+        minScoreInd = minScoreInd + 1.0
+        minScoreDrug = min(drugOne, drugTwo, drugThree, drugFour)
+        if minScoreInd == df_testAns.iloc[key, 'drug']:
+            filteredSubj[key] = dct_scores[key]
+
+    return filteredSubj
+
+def calculate_improvement_score(network, df_base_target):
     #Should be passed the test predictions and the test targets (truth)
 
     #Calculate drop in QIDS score with Targets. avg across all: V_t
@@ -275,13 +321,38 @@ def calculate_improvement_score(baseline_score, prediction, target):
     #Find improvement score = V_t - V_p
 
     #Return improvement score
-    return None
+    df_testAns = deepcopy(df_base_target)
+    dct_drugScores = get_drug_scores(network, df_base_target)
+    dct_filteredSubj = filter_matched_medications(dct_drugScores, df_base_taget, df_testAns)
+    dct_filteredSubjBase = {}
+    v_t_baseQids = np.array(df_base_target.qids_base, np.float32)
+    v_t_finalQids = np.array(df_base_target.qids_final_score, np.float32)
+
+    V_t = (v_t_baseQids - v_t_finalQids).mean()
+
+    for index, row in df_testAns.keys():
+        if index in dct_filteredSubj.keys():
+            dct_filteredSubjBase[index] = row.qids_base
+    ls_filtSubjBase = []
+    ls_filtSubjFinal = []
+    for key in dct_filteredSubj:
+        ls_filtSubjBase.append(dct_filteredSubjBase[key])
+        ls_filtSubjFinal.append(dct_filteredSubj[key])
+    v_p_baseQids = np.array(ls_filtSubjBase, np.float32)
+    v_p_finalQids = np.array(ls_filtSubjFinal, np.float32)
+
+    V_p = (v_p_baseQids - v_p_finalQids).mean()
+
+    #Negative implied prediction is better
+    improvement_score = V_t - V_p
+
+    return improvement_score
 
 def bootfold_p_estimate(network, data_matrix, n_samples=2, k_folds=10):
     """
     Bootstrap k-fold CV p-value estimation for improvement scores.
     Try some sort of stratified bootstrapping for class imbalance
-    
+
     Args:
         network: a Network object
         data_matrix: ndarray with index on 0th dimension
@@ -290,8 +361,12 @@ def bootfold_p_estimate(network, data_matrix, n_samples=2, k_folds=10):
     """
 
     sample_size = data_matrix.shape[0]
+    ls_p_values = []
     for _ in range(n_samples):
         sample = data_matrix[np.random.choice(sample_size, size=sample_size, replace=True), :]
         print (sample.shape)
 
-        k_fold_validation(network, train_x=_, train_y=_, k=k_folds, epochs=10)
+        p_value = k_fold_validation(network, train_x=_, train_y=_, k=k_folds, epochs=10)
+        ls_p_values.append(p_value)
+        print(p_value)
+    print np.average(ls_p_values)
