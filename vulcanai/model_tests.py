@@ -2,7 +2,7 @@
 import os
 
 import numpy as np
-
+import pandas as pd
 import collections
 
 from utils import get_class
@@ -12,6 +12,8 @@ from utils import get_one_hot
 from utils import get_timestamp
 
 from sklearn import metrics
+
+from sklearn.utils import shuffle
 
 from copy import deepcopy
 
@@ -199,8 +201,8 @@ def run_test(network, test_x, test_y, figure_path='figures', plot=True):
     }
 
 
-def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
-                      batch_ratio=1.0, plot=False, **kwargs):
+def k_fold_validation(network, train_x, train_y, df_test_set, k=5, epochs=10,
+                      batch_ratio=1.0, plot=False):
     """
     Conduct k fold cross validation on a network.
 
@@ -214,7 +216,7 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
 
     Returns final metric dictionary
     """
-    df_testSet = kwargs[0]
+
     try:
         network.save_name
     except:
@@ -223,6 +225,7 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
     results = []
     ls_improvementScores = []
     timestamp = get_timestamp()
+    print 'Second features', train_x.shape, train_y.shape
     for i in range(k):
         val_x = train_x[i * chunk_size:(i + 1) * chunk_size]
         val_y = train_y[i * chunk_size:(i + 1) * chunk_size]
@@ -234,6 +237,8 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
             (train_y[:i * chunk_size], train_y[(i + 1) * chunk_size:]),
             axis=0
         )
+        print tra_x.shape
+        print tra_y.shape
         net = deepcopy(network)
         net.train(
             epochs=epochs,
@@ -244,7 +249,7 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
             batch_ratio=batch_ratio,
             plot=plot
         )
-        foldScore = calculate_improvement_score(network=network, df_base_target=df_testSet)
+        foldScore = calculate_improvement_score(network=network, df_base_target=df_test_set)
         ls_improvementScores.append(foldScore)
         results += [Counter(run_test(
             net,
@@ -268,12 +273,12 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
         print ('{}: {:.4f}'.format(metric_key, aggregate_results[metric_key]))
 
     #Return p_value
-    return aggregate_results
+    return aggregate_results, p_value
 
 def get_drug_scores(network, df):
     ls_drugs = [1.0, 2.0, 3.0, 4.0]
     dct_armTest = collections.defaultdict()
-    for index, row df.iterrows():
+    for index, row in df.iterrows():
         dct_armTest[index] = {}
     for index, row in df.iterrows():
         subjData = df.loc[[index]]
@@ -348,7 +353,7 @@ def calculate_improvement_score(network, df_base_target):
 
     return improvement_score
 
-def bootfold_p_estimate(network, data_matrix, n_samples=2, k_folds=10):
+def bootfold_p_estimate(network, data_matrix, test_matrix, n_samples=10, k_folds=10):
     """
     Bootstrap k-fold CV p-value estimation for improvement scores.
     Try some sort of stratified bootstrapping for class imbalance
@@ -360,13 +365,28 @@ def bootfold_p_estimate(network, data_matrix, n_samples=2, k_folds=10):
         k_folds: how many cross validated folds per bootstrap sample
     """
 
+    features = data_matrix.drop(['qids_final_score'], axis=1)
+    nn_features = np.array(features, dtype=np.float32)
+    nn_qids_score = np.array(pd.get_dummies(data_matrix.qids_final_score), dtype=np.float32)
+    #nn_qids_score = np.expand_dims(np.array(data_matrix.qids_final_score, dtype=np.float32), axis=1)
+    nn_features, nn_qids_score = shuffle(nn_features, nn_qids_score, random_state=0)
+    data_matrix = np.array(data_matrix, dtype=np.float32)
+
     sample_size = data_matrix.shape[0]
     ls_p_values = []
     for _ in range(n_samples):
-        sample = data_matrix[np.random.choice(sample_size, size=sample_size, replace=True), :]
-        print (sample.shape)
-
-        p_value = k_fold_validation(network, train_x=_, train_y=_, k=k_folds, epochs=10)
+        #sample = data_matrix[np.random.choice(sample_size, size=sample_size, replace=True), :]
+        sample = data_matrix[np.random.choice(sample_size, size=sample_size, replace=True)]
+        print 'Sample shape',(sample.shape)
+        #feat = np.delete(sample,[-1],1)
+        feat = sample[:, :-1]
+        df_feat = pd.DataFrame(feat)
+        train_x = np.array(df_feat, dtype=np.float32)
+        scores = sample[:,-1]
+        df_scores = pd.DataFrame(scores)
+        train_y = np.array(pd.get_dummies(df_scores[0]))
+        print 'Train size', train_y.shape, train_x.shape
+        _, p_value = k_fold_validation(network=network, train_x=train_x, train_y=train_y, df_test_set=test_matrix, k=k_folds, epochs=10)
         ls_p_values.append(p_value)
         print(p_value)
     print np.average(ls_p_values)
