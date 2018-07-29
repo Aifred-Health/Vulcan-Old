@@ -36,8 +36,8 @@ from vulcanai.snapshot_ensemble import Snapshot
 from vulcanai.utils import *
 from vulcanai.model_tests import run_test, k_fold_validation, bootfold_p_estimate
 
-df_stard = pd.read_csv("C:/Users/jmehl/training_scripts/STARD/STARD_CSV/STARD07_27.csv")
-df_comed = pd.read_csv("C:/Users/jmehl/training_scripts/COMED/Custom_CSV/COMED07_05.csv")
+df_stard = pd.read_csv("~/training_scripts/Notebooks/STARD/STARD_CSV/STARD07_13.csv")
+df_comed = pd.read_csv("~/training_scripts/Notebooks/COMED/Custom_CSV/COMED07_05.csv")
 
 df_stard = df_stard.apply(pd.to_numeric, errors='ignore')
 df_comed = df_comed.apply(pd.to_numeric, errors='ignore')
@@ -260,9 +260,15 @@ if 'remsn' in list(df_combined):
     del df_combined['remsn']
 print len(list(df_combined))
 
-currFeat = ['anhrt', 'dage', 'ebnge', 'educat', 'empty', 'emspk', 'gender_codes', 'happt', 'hemin', 'hengy', 'hhypc', 'hintr', 'hmdsd', 'hmnin', 'hpanx', 'hsanx', 'hslow', 'hsoin', \
-            'hsuic', 'imnin', 'interview_age', 'iplsr', 'iqty', 'ivrtn', 'obfgt', 'phstm', 'qids_base', 'qstot', 'teblk', 'tetht', 'totincom', 'trwit', 'vagit', 'vapin', 'vcntr',\
-            'vemin', 'vintr', 'vmdsd', 'vslow', 'vvwsf', 'vwtin', 'wiser', 'wpai02', 'wpai04', 'wsas01', 'wynrv', 'qids_final_score', 'drug']
+currFeat = ['anshk', 'dage', 'ebdsg', 'educat', 'emspk', 'emwry', 'frsit', \
+            'gender_codes', 'happt', 'hengy', 'hhypc', 'hintr', 'hmdsd',\
+            'hmnin', 'hpanx', 'hsanx', 'hsex', 'hslow', 'hsuic', 'ildn', \
+            'interview_age', 'ivrtn', 'ivwfr', 'obfgt', 'phstm', 'qids_base', \
+            'qstot', 'teblk', 'tetht', 'totincom', 'trwit', 'vagit', 'vapin', \
+            'vcntr', 'vemin', 'vengy', 'vhysm', 'vmdsd', 'vmnin', 'vslow', \
+            'vsoin', 'vvwsf', 'vwtdc', 'vwtin', 'wiser', 'wpai02', 'wpai04', \
+            'wpai05', 'wsas01', 'wynrv', 'drug', 'qids_final_score']
+
 df_combined = df_combined[currFeat]
 print len(list(df_combined))
 
@@ -290,9 +296,11 @@ len(df_combinedNN)
 df_combinedTestNN = df_combinedTestNN[list(df_combinedNN)]
 len(list(df_combinedNN)), len(list(df_combinedTestNN))
 
-df_combined = df_combined.loc[df_combined['qids_final_score'] != -1.0]
+df_combinedNN = df_combinedNN.loc[df_combinedNN['qids_final_score'] != -1.0]
+df_combinedTestNN = df_combinedTestNN.loc[df_combinedTestNN['qids_final_score'] != -1.0]
+df_combinedTestNN = df_combinedTestNN.reset_index()
 reserve = 0.8
-features = df_combined.drop(['qids_final_score'], axis=1)
+features = df_combinedNN.drop(['qids_final_score'], axis=1)
 featuresTest = df_combinedTestNN.drop(['qids_final_score'], axis=1)
 
 for column in list(features):
@@ -302,8 +310,9 @@ for column in list(featuresTest):
     if featuresTest[column].dtypes == 'object':
         featuresTest[column] = featuresTest[column].astype(np.float32)
 
+print df_combinedNN.qids_final_score.value_counts().sort_index()
 nn_features = np.array(features, dtype=np.float32)
-nn_qids_score = np.expand_dims(np.array(df_combined.qids_final_score, dtype=np.float32), axis=1)
+nn_qids_score = np.array(pd.get_dummies(df_combinedNN.qids_final_score), dtype=np.float32)
 nn_features, nn_qids_score = shuffle(nn_features, nn_qids_score, random_state=0)
 
 nn_featuresTest = np.array(featuresTest, dtype=np.float32)
@@ -320,7 +329,7 @@ input_var = T.fmatrix('input')
 output = T.fmatrix('truth')
 len(nn_features), len(nn_qids_scoreTest)
 
-num_classes = 28
+num_classes = nn_qids_score.shape[-1]
 print sizeOfFeatures, num_classes
 network_dense_config = {
     'mode': 'dense',
@@ -338,20 +347,28 @@ dense_netComStarQIDSScore = Network(
     config=network_dense_config,
     #input_network={'network': autoencoder, 'layer': 10, 'get_params': True},
     activation='selu',
-    pred_activation='rectify',
+    pred_activation='softmax',
     optimizer='adam',
-    learning_rate=0.001,
+    learning_rate=0.00001,
     stopping_rule=None
 )
 
 #dense_net.create_classification_layer(dense_net, arms_classes, None)
 #qids_score5k = k_fold_validation(dense_netComStarQIDSScore, nn_features, nn_qids_range, k=5, epochs=150)
 #dense_netComStarQIDSScore.train(epochs=150, train_x=nn_features, train_y=nn_qids_score, val_x=nn_featuresTest, val_y=nn_qids_scoreTest, batch_ratio=0.1, plot=True, change_rate=None)
-colOrder = ['anhrt', 'dage', 'ebnge', 'educat', 'empty', 'emspk', 'gender_codes', 'happt', 'hemin', 'hengy', 'hhypc', 'hintr', 'hmdsd', 'hmnin', 'hpanx', 'hsanx', 'hslow', 'hsoin', 'hsuic', \
-            'imnin', 'interview_age', 'iplsr', 'iqty', 'ivrtn', 'obfgt', 'phstm', 'qids_base', 'qstot', 'teblk', 'tetht', 'totincom', 'trwit', 'vagit', 'vapin', 'vcntr', 'vemin', 'vintr', 'vmdsd',\
-            'vslow', 'vvwsf', 'vwtin', 'wiser', 'wpai02', 'wpai04', 'wsas01', 'wynrv', 'drug', 'qids_final_score']
-df_combined = df_combined[colOrder]
-
+colOrder = ['anshk', 'dage', 'ebdsg', 'educat', 'emspk', 'emwry', 'frsit', \
+            'gender_codes', 'happt', 'hengy', 'hhypc', 'hintr', 'hmdsd',\
+            'hmnin', 'hpanx', 'hsanx', 'hsex', 'hslow', 'hsuic', 'ildn', \
+            'interview_age', 'ivrtn', 'ivwfr', 'obfgt', 'phstm', 'qids_base', \
+            'qstot', 'teblk', 'tetht', 'totincom', 'trwit', 'vagit', 'vapin', \
+            'vcntr', 'vemin', 'vengy', 'vhysm', 'vmdsd', 'vmnin', 'vslow', \
+            'vsoin', 'vvwsf', 'vwtdc', 'vwtin', 'wiser', 'wpai02', 'wpai04', \
+            'wpai05', 'wsas01', 'wynrv', 'drug', 'qids_final_score']
+df_combinedNN = df_combinedNN[colOrder]
+df_combinedTestNN = df_combinedTestNN[list(df_combinedNN)]
+df_combinedTestNN = df_combinedTestNN[colOrder]
+df_combinedNN = df_combinedNN.fillna(-1)
+df_combinedTestNN = df_combinedTestNN.fillna(-1)
 matrix = np.array(df_combined, dtype=np.float32)
 #print df_combined.qids_final_score.value_counts().sort_index()
 #print df_combined.qids_final_score.head(5)
@@ -379,4 +396,8 @@ qids_score_test = qids_score[int(qids_score.shape[0] * reserve):]
 
 print 'features', features.shape
 print 'qids', qids_score.shape
-bootfold_p_estimate(network=dense_netComStarQIDSScore, data_matrix=df_combined, test_matrix= df_combinedTestNN, n_samples=1, k_folds=1)
+df_combinedTestNN = df_combinedTestNN.reset_index()
+if 'index' in list(df_combinedTestNN):
+    del df_combinedTestNN['index']
+#print len(list(df_combinedTestNN)), list(df_combinedTestNN)
+bootfold_p_estimate(network=dense_netComStarQIDSScore, data_matrix=df_combinedNN, test_matrix= df_combinedTestNN, n_samples=2, k_folds=5)
