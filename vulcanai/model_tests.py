@@ -202,7 +202,7 @@ def run_test(network, test_x, test_y, figure_path='figures', plot=True):
     }
 
 
-def k_fold_validation(network, train_x, train_y, df_test_set, k=5, epochs=10,
+def k_fold_validation(network, train_x, train_y, df_test_set, prediction, k=5, epochs=10,
                       batch_ratio=1.0, plot=False):
     """
     Conduct k fold cross validation on a network.
@@ -242,8 +242,27 @@ def k_fold_validation(network, train_x, train_y, df_test_set, k=5, epochs=10,
             (train_y[:i * chunk_size], train_y[(i + 1) * chunk_size:]),
             axis=0
         )
+        test_set = np.hstack((val_x, val_y))
+        df_test_set = pd.DataFrame(test_set, columns=list(df_test_set))
+        df_pred = pd.DataFrame(tra_y)
+        tra_y = np.array(pd.get_dummies((df_pred[0])), dtype=np.float32)
+        val_y = pd.DataFrame(val_y)
+        val_y = np.array((pd.get_dummies(val_y[0])), dtype=np.float32)
         print tra_x.shape
         print tra_y.shape
+        print val_x.shape
+        print val_y.shape
+        if tra_y.shape[1] != 28 and prediction == 'Score':
+            x,y = tra_y.shape
+            addCol = np.ones((x,(28-y)))
+            tra_y = np.hstack((tra_y, addCol))
+            print '\t', tra_x.shape
+            print '\t', tra_y.shape
+        if val_y.shape[1] != 28 and prediction == 'Score':
+            x,y = val_y.shape
+            addCol = np.ones((x, (28-y)))
+            val_y = np.hstack((val_y, addCol))
+            print '\t', val_y.shape
         net = deepcopy(network)
         net.train(
             epochs=epochs,
@@ -251,10 +270,11 @@ def k_fold_validation(network, train_x, train_y, df_test_set, k=5, epochs=10,
             train_y=tra_y,
             val_x=val_x,
             val_y=val_y,
-            batch_ratio=batch_ratio,
+            batch_ratio=0.1,
             plot=plot
         )
-        foldScore = calculate_improvement_score(network=network, df_base_target=df_test_set)
+        #foldScore = calculate_improvement_score(network=network, df_test=df_test_set, val_x=val_x, val_y=val_y, prediction=prediction)
+        foldScore = calculate_improvement_score(network=net, df_base_target=df_test_set, prediction=prediction)
         print 'Fold score of: ', foldScore
         ls_improvementScores.append(foldScore)
         results += [Counter(run_test(
@@ -265,14 +285,14 @@ def k_fold_validation(network, train_x, train_y, df_test_set, k=5, epochs=10,
             plot=plot))]
         del net
     aggregate_results = reduce(lambda x, y: x + y, results)
-
     n = len(ls_improvementScores)
     arr_improvementScores = np.array(ls_improvementScores, np.float32)
     sigma = np.std(arr_improvementScores, axis=0)
     ybar = np.mean(arr_improvementScores, axis=0)
     sigma = float(sigma)
     print ls_improvementScores, sigma, ybar
-    z_score = (ybar - 0.0)/np.sqrt((sigma**2)/n)
+    z_score = (ybar - 1.0)/np.sqrt((sigma**2)/n)
+    #z_score = (0.0 - ybar)/(sigma)
     p_value = scipy.stats.norm.sf(abs(z_score))
 
     print ('\nFinal Cross validated results')
@@ -280,9 +300,9 @@ def k_fold_validation(network, train_x, train_y, df_test_set, k=5, epochs=10,
     for metric_key in aggregate_results.keys():
         aggregate_results[metric_key] /= float(k)
         print ('{}: {:.4f}'.format(metric_key, aggregate_results[metric_key]))
-
+    print '***** Z-Score: ', z_score
     #Return p_value
-    return aggregate_results, p_value
+    return aggregate_results, p_value, z_score
 
 def get_drug_scores(network, df):
     print '***** In drug score *****'
@@ -294,7 +314,6 @@ def get_drug_scores(network, df):
         subjData = df.loc[[index]]
         subjFeat = subjData.drop(['qids_final_score'], axis=1)
         nn_subjFeat = np.array(subjFeat, dtype=np.float32)
-        nn_subjScore = np.array(pd.get_dummies(subjData.qids_final_score), dtype=np.float32)
         subjScoreClass = network.forward_pass(input_data=nn_subjFeat, convert_to_class=True)
         dct_armTest[index][row.drug] = subjScoreClass[0]
         for newDrug in ls_drugs:
@@ -308,6 +327,31 @@ def get_drug_scores(network, df):
     print '**** Exiting drug score ********'
     return dct_armTest
 
+def get_remission_probs(network, df):
+    print '***** In drug score *****'
+    ls_drugs = [1.0, 2.0, 3.0, 4.0]
+    dct_armTest = collections.defaultdict()
+    for index, row in df.iterrows():
+        dct_armTest[index] = {}
+    for index, row in df.iterrows():
+        subjData = df.loc[[index]]
+        subjFeat = subjData.drop(['remsn'], axis=1)
+        nn_subjFeat = np.array(subjFeat, dtype=np.float32)
+        subjScore = network.forward_pass(input_data=nn_subjFeat, convert_to_class=False)
+        subjScore = subjScore[0][1] * 100
+        remsProb = round(subjScore, 2)
+        dct_armTest[index][row.drug] = remsProb
+        for newDrug in ls_drugs:
+            if newDrug != row.drug:
+                subjData['drug'] = newDrug
+                subjFeat = subjData.drop('remsn', axis=1)
+                nn_subjFeat = np.array(subjFeat, dtype=np.float32)
+                subjScore = network.forward_pass(input_data=nn_subjFeat, convert_to_class=False)
+                subjScore = subjScore[0][1] * 100
+                remsProb = round(subjScore, 2)
+                dct_armTest[index][newDrug] = remsProb
+    print '**** Exiting drug score ********'
+    return dct_armTest
 def filter_matched_medications(dct_scores, df_testAns):
     print '***** In filtered subjects ****** '
     dct_DrugScore = {}
@@ -317,8 +361,8 @@ def filter_matched_medications(dct_scores, df_testAns):
         drugTwo = dct_scores[key][2.0]
         drugThree = dct_scores[key][3.0]
         drugFour = dct_scores[key][4.0]
-        ls_scores = [drugOne[0], drugTwo[0], drugThree[0], drugFour[0]]
-        minScoreDrug = min(drugOne[0], drugTwo[0], drugThree[0], drugFour[0])
+        ls_scores = [drugOne, drugTwo, drugThree, drugFour]
+        minScoreDrug = min(drugOne, drugTwo, drugThree, drugFour)
         minScoreInd = ls_scores.index(min(ls_scores))
         minScoreInd = minScoreInd + 1.0
         if all(ls_scores[0] == item for item in ls_scores):
@@ -332,7 +376,7 @@ def filter_matched_medications(dct_scores, df_testAns):
 
         else:
             #minScoreInd = ls_scores.index(min(ls_scores))
-            minScoreDrug = min(drugOne, drugTwo, drugThree, drugFour)
+            #minScoreDrug = min(drugOne, drugTwo, drugThree, drugFour)
             minScoreInd = ls_scores.index(min(ls_scores))
             minScoreInd = minScoreInd + 1.0
             if minScoreInd == df_testAns.loc[key, 'drug']:
@@ -344,7 +388,7 @@ def filter_matched_medications(dct_scores, df_testAns):
 def check_dup_index(scores, item):
     return [ind for ind, x in enumerate(scores) if x[0] == item]
 
-def calculate_improvement_score(network, df_base_target):
+def calculate_improvement_score(network, df_base_target, prediction):
     #Should be passed the test predictions and the test targets (truth)
 
     #Calculate drop in QIDS score with Targets. avg across all: V_t
@@ -358,35 +402,104 @@ def calculate_improvement_score(network, df_base_target):
     #Return improvement score
     print '******** In calculate improvement score *********'
     df_testAns = deepcopy(df_base_target)
-    dct_drugScores = get_drug_scores(network, df_base_target)
-    dct_filteredSubj = filter_matched_medications(dct_drugScores, df_testAns)
+
+    if prediction == 'Score':
+        dct_scores = get_drug_scores(network, df_base_target)
+    elif prediction == 'Remission':
+        dct_scores = get_remission_probs(network, df_base_target)
+    dct_filteredSubj = filter_matched_medications(dct_scores, df_testAns)
     dct_filteredSubjBase = {}
-    v_t_baseQids = np.array(df_base_target.qids_base, np.float32)
-    v_t_finalQids = np.array(df_base_target.qids_final_score, np.float32)
 
-    V_t = (v_t_baseQids - v_t_finalQids).mean()
+    if prediction == 'Score':
+        v_t_baseQids = np.array(df_base_target.qids_base, np.float32)
+        v_t_finalQids = np.array(df_base_target.qids_final_score, np.float32)
+        for index, row in df_base_target.iterrows():
+            if index in dct_filteredSubj.keys():
+                dct_filteredSubjBase[index] = row.qids_base
+        V_t = (v_t_baseQids - v_t_finalQids).mean()
 
-    for index, row in df_base_target.iterrows():
-        if index in dct_filteredSubj.keys():
-            dct_filteredSubjBase[index] = row.qids_base
+
+    elif prediction == 'Remission':
+        #No one is in remission at base
+        remsnCount = 0
+        nonRemsnCount = 0
+        remsnTotal = 0
+        ls_base = []
+        ls_final = []
+        for index, row, in df_base_target.iterrows():
+            #if index in dct_filteredSubj.keys():
+            if row.remsn == 1.0:
+                remsnCount = remsnCount + 1.0
+                remsnTotal = remsnTotal + 1.0
+                    # ls_filtSubjFinal.append(1.0)
+            else:
+                nonRemsnCount = nonRemsnCount + 1.0
+                remsnTotal = remsnTotal + 1.0
+        remsnRate = float(remsnCount/remsnTotal) * 100
+        v_t_baseQids = 0
+        for index, row in df_base_target.iterrows():
+            ls_base.append(0.0)
+            ls_final.append(remsnRate)
+        v_t_baseQids = np.array(ls_base, np.float32)
+        v_t_finalQids = np.array(ls_final, np.float32)
+        V_t = remsnRate
+        #V_t = (v_t_baseQids - v_t_finalQids).mean()
+        print V_t
+
     ls_filtSubjBase = []
     ls_filtSubjFinal = []
-    for key in dct_filteredSubj:
-        ls_filtSubjBase.append(dct_filteredSubjBase[key])
-        ls_filtSubjFinal.append(dct_filteredSubj[key])
-    #for
-    v_p_baseQids = np.array(ls_filtSubjBase, np.float32)
-    v_p_finalQids = np.array(ls_filtSubjFinal, np.float32)
 
-    V_p = (v_p_baseQids - v_p_finalQids).mean()
+    if prediction == 'Score':
+        for key in dct_filteredSubj.keys():
+            ls_filtSubjBase.append(dct_filteredSubjBase[key])
+            ls_filtSubjFinal.append(dct_filteredSubj[key])
+        v_p_baseQids = np.array(ls_filtSubjBase, np.float32)
+        v_p_finalQids = np.array(ls_filtSubjFinal, np.float32)
+        V_p = (v_p_baseQids - v_p_finalQids).mean()
 
+    elif prediction == 'Remission':
+        remsnCount = 0
+        nonRemsnCount = 0
+        remsnTotal = 0
+        for index, row, in df_base_target.iterrows():
+            #if index in dct_filteredSubj.keys():
+            if row.remsn == 1.0:
+                remsnCount = remsnCount + 1.0
+                remsnTotal = remsnTotal + 1.0
+                # ls_filtSubjFinal.append(1.0)
+            else:
+                nonRemsnCount = nonRemsnCount + 1.0
+                remsnTotal = remsnTotal + 1.0
+        remsnRate = float(remsnCount / remsnTotal) * 100
+
+        for key in dct_filteredSubj.keys():
+            dct_filteredSubjBase[index] = remsnRate
+        for key in dct_filteredSubj.keys():
+            ls_filtSubjBase.append(0.0)
+            ls_filtSubjFinal.append(dct_filteredSubj[key])
+        v_p_baseQids = np.array(ls_filtSubjBase, np.float32)
+        v_p_finalQids = np.array(ls_filtSubjFinal, np.float32)
+        #V_p = (v_p_baseQids/v_p_finalQids).mean()
+        #V_p = (v_p_baseQids - v_p_finalQids).mean()
+        V_p = v_p_finalQids.mean()
+        print 'V_t & V_p scores: ', V_t, V_p
+        ## We want improvement_score to be greater than 1
+        improvement_score = V_p/V_t
+        #improvement_score = V_t/V_p
+        print '\t Improvement Scores: ', improvement_score
+        count = 0.0
+        remSum = 0.0
+        for key in dct_filteredSubj.keys():
+            count += 1.0
+            remSum += dct_filteredSubj[key]
+        meanRem = remSum/count
     #Negative implied prediction is better
-    improvement_score = V_t - V_p
+    #improvement_score = V_t - V_p
     print improvement_score
     print '******** Exiting improvment score ******'
     return improvement_score
 
-def bootfold_p_estimate(network, data_matrix, test_matrix, n_samples=10, k_folds=10):
+def bootfold_p_estimate(network, data_matrix, test_matrix, to_predict, n_samples=10, k_folds=10):
     """
     Bootstrap k-fold CV p-value estimation for improvement scores.
     Try some sort of stratified bootstrapping for class imbalance
@@ -397,29 +510,28 @@ def bootfold_p_estimate(network, data_matrix, test_matrix, n_samples=10, k_folds
         n_samples: how many bootstrap sampls to generate
         k_folds: how many cross validated folds per bootstrap sample
     """
-
-    features = data_matrix.drop(['qids_final_score'], axis=1)
-    nn_features = np.array(features, dtype=np.float32)
-    nn_qids_score = np.array(pd.get_dummies(data_matrix.qids_final_score), dtype=np.float32)
-    #nn_qids_score = np.expand_dims(np.array(data_matrix.qids_final_score, dtype=np.float32), axis=1)
-    nn_features, nn_qids_score = shuffle(nn_features, nn_qids_score, random_state=0)
     data_matrix = np.array(data_matrix, dtype=np.float32)
 
     sample_size = data_matrix.shape[0]
     ls_p_values = []
-    for _ in range(n_samples):
+    ls_z_scores = []
+    for samp in range(n_samples):
         #sample = data_matrix[np.random.choice(sample_size, size=sample_size, replace=True), :]
+        #print 'Data Matrix Shape before: ', (data_matrix.shape)
         sample = data_matrix[np.random.choice(sample_size, size=sample_size, replace=True)]
-        print 'Sample shape',(sample.shape)
         #feat = np.delete(sample,[-1],1)
         feat = sample[:, :-1]
         df_feat = pd.DataFrame(feat)
         train_x = np.array(df_feat, dtype=np.float32)
-        scores = sample[:,-1]
-        df_scores = pd.DataFrame(scores)
-        train_y = np.array(pd.get_dummies(df_scores[0]))
+        train_y = sample[:,-1]
+        df_pred = pd.DataFrame(train_y)
+        train_y = np.array(df_pred, dtype=np.float32)
+        #train_y = np.array(pd.get_dummies(df_pred[0]))
         print 'Train size', train_y.shape, train_x.shape
-        _, p_value = k_fold_validation(network=network, train_x=train_x, train_y=train_y, df_test_set=test_matrix, k=k_folds, epochs=150)
+        _, p_value, z_score = k_fold_validation(network=network, train_x=train_x, train_y=train_y, df_test_set=test_matrix, prediction=to_predict, k=k_folds, epochs=500)
         ls_p_values.append(p_value)
-        print(p_value)
-    print np.average(ls_p_values)
+        ls_z_scores.append(z_score)
+        print p_value, z_score
+    print 'z-scores: ', ls_z_scores
+    print 'P-values: ', ls_p_values
+    print 'Average of p-values: ', np.average(ls_p_values)

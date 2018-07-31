@@ -38,7 +38,8 @@ from vulcanai.model_tests import run_test, k_fold_validation, bootfold_p_estimat
 
 df_stard = pd.read_csv("~/training_scripts/Notebooks/STARD/STARD_CSV/STARD07_13.csv")
 df_comed = pd.read_csv("~/training_scripts/Notebooks/COMED/Custom_CSV/COMED07_05.csv")
-
+#df_stard = pd.read_csv("~/training_scripts/Notebooks/STARD/STARD_CSV/STARDBaseQIDSRAll07_16.csv")
+#df_comed = pd.read_csv("~/training_scripts/Notebooks/COMED/Custom_CSV/COMEDBASEAll07_05.csv")
 df_stard = df_stard.apply(pd.to_numeric, errors='ignore')
 df_comed = df_comed.apply(pd.to_numeric, errors='ignore')
 
@@ -116,12 +117,14 @@ for subj, df in comedBySubj:
             else:
                 df_comedBase.loc[df_comedBase['subjectkey'] == maxDayTot.subjectkey, 'qids_final_score'] = np.nan
 
-df_comedBase['qids_base'] = df_comedBase.qstot
-df_stardBase['qids_base'] = df_stardBase.qscur_r
+
+df_stardBase = pd.read_csv("~/training_scripts/Notebooks/STARD/STARD_CSV/STARDBaseQIDSRAll07_16.csv")
+df_comedBase = pd.read_csv("~/training_scripts/Notebooks/COMED/Custom_CSV/COMEDBaseAll07_05.csv")
 
 df_stardBaseModel = copy.deepcopy(df_stardBase)
 df_comedBaseModel = copy.deepcopy(df_comedBase)
-
+df_comedBaseModel['qids_base'] = df_comedBaseModel.qstot
+df_stardBaseModel['qids_base'] = df_stardBaseModel.qscur_r
 if 'subjectkey' in list(df_stardBaseModel):
     del df_stardBaseModel['subjectkey']
 if 'src_subject_id' in list(df_stardBaseModel):
@@ -185,6 +188,7 @@ for stardColumn in list(df_stardBaseModel):
         del df_stardBaseModel[stardColumn]
 print len(list(df_comedBaseModel)), len(list(df_stardBaseModel))
 print len(df_comedBaseModel), len(df_stardBaseModel)
+
 
 df_stardBaseModel = df_stardBaseModel.apply(pd.to_numeric, errors='ignore')
 df_comedBaseModel = df_comedBaseModel.apply(pd.to_numeric, errors='ignore')
@@ -253,11 +257,10 @@ print len(list(df_comedBaseModel)), len(list(df_stardBaseModel))
 print len(df_comedBaseModel), len(df_stardBaseModel)
 
 df_combined = df_comedBaseModel.append(df_stardBaseModel)
-df_combined = df_combined.loc[df_combined['qids_final_score'] != 99.0]
+if 'qids_final_score' in list(df_combined):
+    df_combined = df_combined.loc[df_combined['qids_final_score'] != 99.0]
 
-print len(list(df_combined))
-if 'remsn' in list(df_combined):
-    del df_combined['remsn']
+print 'Before known features'
 print len(list(df_combined))
 
 currFeat = ['anshk', 'dage', 'ebdsg', 'educat', 'emspk', 'emwry', 'frsit', \
@@ -268,68 +271,80 @@ currFeat = ['anshk', 'dage', 'ebdsg', 'educat', 'emspk', 'emwry', 'frsit', \
             'vcntr', 'vemin', 'vengy', 'vhysm', 'vmdsd', 'vmnin', 'vslow', \
             'vsoin', 'vvwsf', 'vwtdc', 'vwtin', 'wiser', 'wpai02', 'wpai04', \
             'wpai05', 'wsas01', 'wynrv', 'drug', 'qids_final_score']
-
-df_combined = df_combined[currFeat]
+remsnCurrFeat = ['ebhgy', 'educat', 'frcwd', 'hengy', 'hsuic', 'phach', \
+                 'qstot', 'tejmp', 'teshk', 'totincom', 'trwit', 'vengy', \
+                 'vmdsd', 'vsoin', 'vwtin', 'wpai04', 'drug', 'remsn']
+#remsnCurrFeat = ['anbrt', 'dkmge', 'dkpbm', 'ebaln', 'ebcrl', 'ebhgy', 'ebups', \
+#                 'emqst', 'emstu', 'emupr', 'emwrt', 'frcar', 'frfar', 'frlne', \
+#                 'fropn', 'hinsg', 'hintr', 'iplsr', 'islow', 'ismtc', 'isuic', \
+#                 'isymp', 'obcln', 'obcnt', 'obgrm', 'phach', 'phsck', 'tejmp', \
+#                 'visday', 'vsuic', 'wistp', 'drug', 'remsn']
+df_combined = df_combined[remsnCurrFeat]
+print 'After known features'
 print len(list(df_combined))
 
-df_stardBaseModelNN = df_combined.loc[df_combined.drug == 4.0]
-df_comedBaseModelNN = df_combined.loc[df_combined.drug != 4.0]
-print len(df_stardBaseModelNN), len(df_comedBaseModelNN)
-df_stardBaseModelNN = df_stardBaseModelNN.sample(frac=1).reset_index(drop=True)
-df_stardTestNN = df_stardBaseModelNN[0:308]
+#df_stardBaseModelNN = df_combined.loc[df_combined.drug == 4.0]
+#df_comedBaseModelNN = df_combined.loc[df_combined.drug != 4.0]
+#print len(df_stardBaseModelNN), len(df_comedBaseModelNN)
+#df_stardBaseModelNN = df_stardBaseModelNN.sample(frac=1).reset_index(drop=True)
+#df_stardTestNN = df_stardBaseModelNN[0:308]
 
-df_stardTestNN.drug.value_counts()
-df_stardBaseModelNN = df_stardBaseModelNN.drop(df_stardBaseModelNN.index[0:308])
+#df_stardTestNN.drug.value_counts()
+#df_stardBaseModelNN = df_stardBaseModelNN.drop(df_stardBaseModelNN.index[0:308])
 
-df_comedBaseModelNN = df_comedBaseModelNN.sample(frac=1).reset_index(drop=True)
-df_comedTestNN = df_comedBaseModelNN[0:140]
+#df_comedBaseModelNN = df_comedBaseModelNN.sample(frac=1).reset_index(drop=True)
+#df_comedTestNN = df_comedBaseModelNN[0:140]
 
-df_comedTestNN.drug.value_counts()
+#df_comedTestNN.drug.value_counts()
 
-df_combinedTestNN = df_comedTestNN.append(df_stardTestNN)
-print len(df_combinedTestNN)
-df_comedBaseModelNN = df_comedBaseModelNN.drop(df_comedBaseModelNN.index[0:140])
+#df_combinedTestNN = df_comedTestNN.append(df_stardTestNN)
+#print len(df_combinedTestNN)
+#df_comedBaseModelNN = df_comedBaseModelNN.drop(df_comedBaseModelNN.index[0:140])
 
-df_combinedNN = df_comedBaseModelNN.append(df_stardBaseModelNN)
+#df_combinedNN = df_comedBaseModelNN.append(df_stardBaseModelNN)
+df_combinedNN = copy.deepcopy(df_combined)
 len(df_combinedNN)
 
-df_combinedTestNN = df_combinedTestNN[list(df_combinedNN)]
+#df_combinedTestNN = df_combinedTestNN[list(df_combinedNN)]
+df_combinedTestNN = df_combinedNN.iloc[[1]]
+print "*****", len(list(df_combinedTestNN))
 len(list(df_combinedNN)), len(list(df_combinedTestNN))
+if 'qids_final_score' in list(df_combinedNN):
+    df_combinedNN = df_combinedNN.loc[df_combinedNN['qids_final_score'] != -1.0]
+    #df_combinedTestNN = df_combinedTestNN.loc[df_combinedTestNN['qids_final_score'] != -1.0]
+    #df_combinedTestNN = df_combinedTestNN.reset_index()
 
-df_combinedNN = df_combinedNN.loc[df_combinedNN['qids_final_score'] != -1.0]
-df_combinedTestNN = df_combinedTestNN.loc[df_combinedTestNN['qids_final_score'] != -1.0]
-df_combinedTestNN = df_combinedTestNN.reset_index()
-reserve = 0.8
-features = df_combinedNN.drop(['qids_final_score'], axis=1)
-featuresTest = df_combinedTestNN.drop(['qids_final_score'], axis=1)
+    reserve = 0.8
+    features = df_combinedNN.drop(['qids_final_score'], axis=1)
 
-for column in list(features):
-    if features[column].dtypes == 'object':
-        features[column] = features[column].astype(np.float32)
-for column in list(featuresTest):
-    if featuresTest[column].dtypes == 'object':
-        featuresTest[column] = featuresTest[column].astype(np.float32)
+    for column in list(features):
+        if features[column].dtypes == 'object':
+            features[column] = features[column].astype(np.float32)
 
-print df_combinedNN.qids_final_score.value_counts().sort_index()
-nn_features = np.array(features, dtype=np.float32)
-nn_qids_score = np.array(pd.get_dummies(df_combinedNN.qids_final_score), dtype=np.float32)
-nn_features, nn_qids_score = shuffle(nn_features, nn_qids_score, random_state=0)
+    nn_features = np.array(features, dtype=np.float32)
+    nn_pred = np.array(pd.get_dummies(df_combinedNN.qids_final_score), dtype=np.float32)
+    nn_features, nn_pred = shuffle(nn_features, nn_pred, random_state=0)
 
-nn_featuresTest = np.array(featuresTest, dtype=np.float32)
-nn_qids_scoreTest = np.expand_dims(np.array(df_combinedTestNN.qids_final_score, dtype=np.float32), axis=1)
-# nn_qids_scoreTest = np.array((df_combinedTestNN.qids_final_score), dtype=np.float32)
-nn_featuresTest, nn_qids_scoreTest = shuffle(nn_featuresTest, nn_qids_scoreTest, random_state=0)
 
-# nn_featuresTest = nn_featuresTest[:int(nn_featuresTest.shape[0])]
-# nn_remissionTest = nn_remissionTest[:int(nn_remissionTest.shape[0])]
+
+else:
+    reserve = 0.8
+    features = df_combinedNN.drop(['remsn'], axis=1)
+
+    for column in list(features):
+        if features[column].dtypes == 'object':
+            features[column] = features[column].astype(np.float32)
+
+    nn_features = np.array(features, dtype=np.float32)
+    nn_pred = np.array(pd.get_dummies(df_combinedNN.remsn), dtype=np.float32)
+    nn_features, nn_pred = shuffle(nn_features, nn_pred, random_state=0)
+
 sizeOfFeatures = int(nn_features.shape[1])
-print sizeOfFeatures
 
 input_var = T.fmatrix('input')
 output = T.fmatrix('truth')
-len(nn_features), len(nn_qids_scoreTest)
 
-num_classes = nn_qids_score.shape[-1]
+num_classes = nn_pred.shape[-1]
 print sizeOfFeatures, num_classes
 network_dense_config = {
     'mode': 'dense',
@@ -364,40 +379,23 @@ colOrder = ['anshk', 'dage', 'ebdsg', 'educat', 'emspk', 'emwry', 'frsit', \
             'vcntr', 'vemin', 'vengy', 'vhysm', 'vmdsd', 'vmnin', 'vslow', \
             'vsoin', 'vvwsf', 'vwtdc', 'vwtin', 'wiser', 'wpai02', 'wpai04', \
             'wpai05', 'wsas01', 'wynrv', 'drug', 'qids_final_score']
-df_combinedNN = df_combinedNN[colOrder]
+
+remsnColOrder = ['ebhgy', 'educat', 'frcwd', 'hengy', 'hsuic', 'phach', \
+                 'qstot', 'tejmp', 'teshk', 'totincom', 'trwit', 'vengy', \
+                 'vmdsd', 'vsoin', 'vwtin', 'wpai04', 'drug', 'remsn']
+#remsnColOrder = ['anbrt', 'dkmge', 'dkpbm', 'ebaln', 'ebcrl', 'ebhgy', 'ebups', \
+#                 'emqst', 'emstu', 'emupr', 'emwrt', 'frcar', 'frfar', 'frlne', \
+#                 'fropn', 'hinsg', 'hintr', 'iplsr', 'islow', 'ismtc', 'isuic', \
+#                 'isymp', 'obcln', 'obcnt', 'obgrm', 'phach', 'phsck', 'tejmp', \
+#                 'visday', 'vsuic', 'wistp', 'drug', 'remsn']
+df_combinedNN = df_combinedNN[remsnColOrder]
 df_combinedTestNN = df_combinedTestNN[list(df_combinedNN)]
-df_combinedTestNN = df_combinedTestNN[colOrder]
+df_combinedTestNN = df_combinedTestNN[remsnColOrder]
 df_combinedNN = df_combinedNN.fillna(-1)
 df_combinedTestNN = df_combinedTestNN.fillna(-1)
-matrix = np.array(df_combined, dtype=np.float32)
-#print df_combined.qids_final_score.value_counts().sort_index()
-#print df_combined.qids_final_score.head(5)
-a = matrix[:,-1]
-print len(matrix)
-print matrix.shape
-matrix = np.delete(matrix, -1, axis=1)
-print len(matrix)
-print matrix.shape
-print matrix.shape[0]
-print len(a)
-print a.shape
-df = pd.DataFrame(a)
-df2 = pd.get_dummies(df[0])
-
-features = df_combined.drop('qids_final_score', axis=1)
-features = np.array(features, dtype=np.float32)
-qids_score = np.array(pd.get_dummies(df_combined.qids_final_score), dtype=np.float32)
-features, qids_score = shuffle(features, qids_score, random_state=0)
-
-features_train = features[:int(features.shape[0] * reserve)]
-features_test = features[int(features.shape[0] * reserve):]
-qids_score_train = qids_score[:int(qids_score.shape[0] * reserve)]
-qids_score_test = qids_score[int(qids_score.shape[0] * reserve):]
-
-print 'features', features.shape
-print 'qids', qids_score.shape
 df_combinedTestNN = df_combinedTestNN.reset_index()
+ls_cols = list(df_combinedNN)
 if 'index' in list(df_combinedTestNN):
     del df_combinedTestNN['index']
 #print len(list(df_combinedTestNN)), list(df_combinedTestNN)
-bootfold_p_estimate(network=dense_netComStarQIDSScore, data_matrix=df_combinedNN, test_matrix= df_combinedTestNN, n_samples=2, k_folds=5)
+bootfold_p_estimate(network=dense_netComStarQIDSScore, data_matrix=df_combinedNN, test_matrix= df_combinedTestNN, to_predict='Remission', n_samples=15, k_folds=10)
