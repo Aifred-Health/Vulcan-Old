@@ -230,12 +230,16 @@ def k_fold_validation(network, train_x, train_y, df_test_set, prediction, k=5, e
     chunk_size = int((train_x.shape[0]) / k)
     results = []
     dct_improvementScores = defaultdict(list)
-    #dct_improvementScores['improvementScoreA'] = {}
-    #dct_improvementScores['improvementScoreB'] = {}
-    #dct_improvementScores['improvementScoreC'] = {}
+    dct_filteredSubjBase = defaultdict(list)
+    dct_filteredSubj = defaultdict(list)
     timestamp = get_timestamp()
+    ls_filteredRemissionProbs = []
+    df_test = deepcopy(df_test_set)
     print 'Second features', train_x.shape, train_y.shape
     for i in range(k):
+        print '********** CURRENT FOLD *******************'
+        print '\n', i
+        print '\n*****************************************'
         val_x = train_x[i * chunk_size:(i + 1) * chunk_size]
         val_y = train_y[i * chunk_size:(i + 1) * chunk_size]
         print 'vals: ', val_x.shape, val_y.shape
@@ -248,11 +252,16 @@ def k_fold_validation(network, train_x, train_y, df_test_set, prediction, k=5, e
             axis=0
         )
         test_set = np.hstack((val_x, val_y))
-        df_test_set = pd.DataFrame(test_set, columns=list(df_test_set))
-        df_pred = pd.DataFrame(tra_y)
-        tra_y = np.array(pd.get_dummies((df_pred[0])), dtype=np.float32)
-        val_y = pd.DataFrame(val_y)
-        val_y = np.array((pd.get_dummies(val_y[0])), dtype=np.float32)
+        df_test_set_feat = df_test_set.drop([0,1], axis=1)
+        df_x = pd.DataFrame(val_x, columns=list(df_test_set_feat))
+        df_y = pd.DataFrame(val_y)
+        df = deepcopy(df_x)
+        df[list(df_y)] = deepcopy(df_y)
+        df_test_set = pd.DataFrame(test_set, columns=list(df))
+        #df_pred = pd.DataFrame(tra_y)
+        #tra_y = np.array(pd.get_dummies((df_pred[0])), dtype=np.float32)
+        #val_y = pd.DataFrame(val_y)
+        #val_y = np.array((pd.get_dummies(val_y[0])), dtype=np.float32)
         print tra_x.shape
         print tra_y.shape
         print val_x.shape
@@ -271,27 +280,34 @@ def k_fold_validation(network, train_x, train_y, df_test_set, prediction, k=5, e
         net = deepcopy(network)
         net.train(
             epochs=epochs,
-            train_x=tra_x,
-            train_y=tra_y,
+            train_x=train_x,
+            train_y=train_y,
             val_x=val_x,
             val_y=val_y,
             batch_ratio=0.1,
             plot=plot
         )
+        import pudb;
+        pu.db
         #foldScore = calculate_improvement_score(network=network, df_test=df_test_set, val_x=val_x, val_y=val_y, prediction=prediction)
         ##calculate_imp score will return dictionary
-        dct_foldScore = calculate_improvement_score(network=net, df_base_target=df_test_set, prediction=prediction)
-        for key in dct_foldScore.keys():
-            keyName = str(key)
-            print keyName
-            #print key
-            if key in dct_improvementScores.keys():
-                dct_improvementScores[keyName].append(dct_foldScore[key])
-            else:
-                dct_improvementScores[keyName].append(dct_foldScore[key])
+        #dct_foldScore = calculate_improvement_score(network=net, df_base_target=df_test_set, prediction=prediction)
+        df_testAns = deepcopy(df_test_set)
+        dct_scores = get_remission_probs(net, df_test_set)
+        dct_filtered = filter_matched_medications(dct_scores, df_testAns)
+        for val in dct_filtered.keys():
+            dct_filteredSubj[val].append(dct_filtered[val])
+            ls_filteredRemissionProbs.append(dct_filtered[val])
+        #for key in dct_foldScore.keys():
+        #    keyName = str(key)
+        #    print keyName
+        #    #print key
+        #    if key in dct_improvementScores.keys():
+        #        dct_improvementScores[keyName].append(dct_foldScore[key])
+        #    else:
+        #         dct_improvementScores[keyName].append(dct_foldScore[key])
 
-        with open('improvScore.txt', 'w') as file:
-            file.write(json.dumps(dct_improvementScores))
+
         ##Randomly save dictionary as numpy array
         #ls_improvementScores.append(foldScore)
         results += [Counter(run_test(
@@ -301,57 +317,96 @@ def k_fold_validation(network, train_x, train_y, df_test_set, prediction, k=5, e
             figure_path='figures/kfold_{}{}'.format(timestamp, network.name),
             plot=plot))]
         del net
+    print type(df_test)
+    print len(df_test)
+    print len(ls_filteredRemissionProbs)
+    print '\n'
+
+    remsnCount = 0.0
+    nonRemsnCount = 0.0
+    remsnTotal = 0.0
+    for index, row, in df_test.iterrows():
+        if row.remsn == 1.0:
+            remsnCount = remsnCount + 1.0
+            remsnTotal = remsnTotal + 1.0
+        else:
+            nonRemsnCount = nonRemsnCount + 1.0
+            remsnTotal = remsnTotal + 1.0
+    remsnRate = float(remsnCount / remsnTotal) * 100.00
+
+    V_t = float(remsnRate)
+    print V_t
+
+    v_p_finalQids = np.array(ls_filteredRemissionProbs, np.float32)
+    V_p = float(v_p_finalQids.mean())
+    print V_p
+
+    #dct_improvementScores['improvement_scoreA'] = float(V_p - V_t)
+    #dct_improvementScores['improvement_scoreB'] = float(V_p / V_t)
+    #dct_improvementScores['improvement_scoreC'] = (V_p / (1.0 - V_p)) / (V_t / (1.0 - V_t))
+    improvementScoreA = float(V_p - V_t)
+    improvementScoreB = float(V_p / V_t)
+    improvementScoreC = (V_p / (1.0 - V_p)) / (V_t / (1.0 - V_t))
+    with open('improvScore.txt', 'w') as file:
+        #file.write(json.dumps(dct_improvementScores))
+        file.write(str(improvementScoreA))
+        file.write(str(improvementScoreB))
+        file.write(str(improvementScoreC))
+    file.close()
+
     aggregate_results = reduce(lambda x, y: x + y, results)
     #####
     #Find percentage of scores > 0, and we want percentage to be below 5%
     #####
-    ls_imprv_a = list(dct_improvementScores['improvement_scoreA'])
-    ls_imprv_b = list(dct_improvementScores['improvement_scoreB'])
-    ls_imprv_c = list(dct_improvementScores['improvement_scoreC'])
+    #ls_imprv_a = list(dct_improvementScores['improvement_scoreA'])
+    #ls_imprv_b = list(dct_improvementScores['improvement_scoreB'])
+    #ls_imprv_c = list(dct_improvementScores['improvement_scoreC'])
 
     #**********************
     #Calculate pvalue A
     #**********************
-    imprv_scorea_tot = float(len(ls_imprv_a))
-    imprvA_score_above0 = 0.0
-    imprvA_score_below0 = 0.0
+    #imprv_scorea_tot = float(len(ls_imprv_a))
+    #imprvA_score_above0 = 0.0
+    #imprvA_score_below0 = 0.0
 
-    for val in ls_imprv_a:
-        if val >= 0.0:
-            imprvA_score_below0 += 1.0
-        else:
-            imprvA_score_above0 += 1.0
-    p_valueA = imprvA_score_below0/imprv_scorea_tot
+    #for val in ls_imprv_a:
+    #    print val
+    #    if val >= 0.0:
+    #        imprvA_score_above0 += 1.0
+    #    else:
+    #        imprvA_score_below0 += 1.0
+    #p_valueA = float(imprvA_score_above0/imprv_scorea_tot)
 
     #*********************
     #Calculate pvalue B
     #*********************
-    imprv_scoreb_tot = len(ls_imprv_b)
-    imprvB_score_above0 = 0
-    imprvB_score_below0 = 0
+    #imprv_scoreb_tot = float(len(ls_imprv_b))
+    #imprvB_score_above0 = 0.0
+    #imprvB_score_below0 = 0.0
 
-    for val in ls_imprv_b:
-        if val < 1:
-            imprvB_score_below0 += 1.0
-        else:
-            imprvB_score_above0 += 1.0
-    p_valueB = imprvB_score_below0/imprv_scoreb_tot
+    #for val in ls_imprv_b:
+    #    print '\t', val
+    #    if val < 1.0:
+    #        imprvB_score_below0 += 1.0
+    #    else:
+    #        imprvB_score_above0 += 1.0
+    #p_valueB = float(imprvB_score_below0/imprv_scoreb_tot)
 
     #*******************
     #Calculate pvalue C
     #*******************
 
-    imprv_scorec_tot = len(ls_imprv_c)
-    imprvC_score_above0 = 0
-    imprvC_score_below0 = 0
+    #imprv_scorec_tot = float(len(ls_imprv_c))
+    #imprvC_score_above0 = 0.0
+    #imprvC_score_below0 = 0.0
 
-    for val in ls_imprv_c:
-        if val < 1:
-            imprvC_score_below0 += 1.0
-        else:
-            imprvC_score_above0 += 1.0
-    p_valueC = imprvC_score_below0/imprv_scorec_tot
-
+    #for val in ls_imprv_c:
+    #    print '\t\t', val
+    #    if val < 1.0:
+    #        imprvC_score_below0 += 1.0
+    #    else:
+    #        imprvC_score_above0 += 1.0
+    #p_valueC = float(imprvC_score_below0/imprv_scorec_tot)
     #z_score = (ybar - 1.0)/np.sqrt((sigma**2)/n)
     #p_value = scipy.stats.norm.sf(abs(z_score))
 
@@ -361,7 +416,7 @@ def k_fold_validation(network, train_x, train_y, df_test_set, prediction, k=5, e
         aggregate_results[metric_key] /= float(k)
         print ('{}: {:.4f}'.format(metric_key, aggregate_results[metric_key]))
     #Return p_value
-    return aggregate_results, p_valueA, p_valueB, p_valueC
+    return aggregate_results, improvementScoreA, improvementScoreB, improvementScoreC
 
 def get_drug_scores(network, df):
     print '***** In drug score *****'
@@ -394,7 +449,7 @@ def get_remission_probs(network, df):
         dct_armTest[index] = {}
     for index, row in df.iterrows():
         subjData = df.loc[[index]]
-        subjFeat = subjData.drop(['remsn'], axis=1)
+        subjFeat = subjData.drop([0,1], axis=1)
         nn_subjFeat = np.array(subjFeat, dtype=np.float32)
         subjScore = network.forward_pass(input_data=nn_subjFeat, convert_to_class=False)
         subjScore = subjScore[0][1] * 100
@@ -403,7 +458,7 @@ def get_remission_probs(network, df):
         for newDrug in ls_drugs:
             if newDrug != row.drug:
                 subjData['drug'] = newDrug
-                subjFeat = subjData.drop('remsn', axis=1)
+                subjFeat = subjData.drop([0,1], axis=1)
                 nn_subjFeat = np.array(subjFeat, dtype=np.float32)
                 subjScore = network.forward_pass(input_data=nn_subjFeat, convert_to_class=False)
                 subjScore = subjScore[0][1] * 100
@@ -480,9 +535,9 @@ def calculate_improvement_score(network, df_base_target, prediction):
 
     elif prediction == 'Remission':
         #No one is in remission at base
-        remsnCount = 0
-        nonRemsnCount = 0
-        remsnTotal = 0
+        remsnCount = 0.0
+        nonRemsnCount = 0.0
+        remsnTotal = 0.0
         ls_base = []
         ls_final = []
         ####
@@ -495,9 +550,9 @@ def calculate_improvement_score(network, df_base_target, prediction):
             else:
                 nonRemsnCount = nonRemsnCount + 1.0
                 remsnTotal = remsnTotal + 1.0
-        remsnRate = float(remsnCount/remsnTotal) * 100
+        remsnRate = float(remsnCount/remsnTotal) * 100.00
 
-        V_t = remsnRate
+        V_t = float(remsnRate)
         print V_t
 
     ls_filtSubjBase = []
@@ -516,11 +571,11 @@ def calculate_improvement_score(network, df_base_target, prediction):
         for key in dct_filteredSubj.keys():
             ls_filtSubjFinal.append(dct_filteredSubj[key])
         v_p_finalQids = np.array(ls_filtSubjFinal, np.float32)
-        V_p = v_p_finalQids.mean()
+        V_p = float(v_p_finalQids.mean())
         print 'V_t & V_p scores: ', V_t, V_p
         ## Compute improvment score (a) and (c) and put into counter dictionary
-        dct_improvementScores['improvement_scoreA'] = V_p - V_t
-        dct_improvementScores['improvement_scoreB'] = V_p/V_t
+        dct_improvementScores['improvement_scoreA'] = float(V_p - V_t)
+        dct_improvementScores['improvement_scoreB'] = float(V_p/V_t)
         dct_improvementScores['improvement_scoreC'] = (V_p/(1.0-V_p))/(V_t/(1.0-V_t))
         print '\t Improvement Scores: ', dct_improvementScores
     #Negative implied prediction is better
@@ -530,7 +585,7 @@ def calculate_improvement_score(network, df_base_target, prediction):
 
     return dct_improvementScores
 
-def bootfold_p_estimate(network, data_matrix, test_matrix, to_predict, n_samples=10, k_folds=10):
+def bootfold_p_estimate(network, data_matrix, test_matrix, to_predict, n_samples=15, k_folds=9):
     """
     Bootstrap k-fold CV p-value estimation for improvement scores.
     Try some sort of stratified bootstrapping for class imbalance
@@ -541,39 +596,112 @@ def bootfold_p_estimate(network, data_matrix, test_matrix, to_predict, n_samples
         n_samples: how many bootstrap sampls to generate
         k_folds: how many cross validated folds per bootstrap sample
     """
-    data_matrix = np.array(data_matrix, dtype=np.float32)
-
-    sample_size = data_matrix.shape[0]
-    ls_p_valuesA = []
-    ls_p_valuesB = []
-    ls_p_valuesC = []
+    #data_matrix = np.array(data_matrix, dtype=np.float32)
+    #print data_matrix.shape
+    #sample_size = data_matrix.shape[0]
+    #ls_p_valuesA = []
+    #ls_p_valuesB = []
+    #ls_p_valuesC = []
+    ls_imprvA = []
+    ls_imprvB = []
+    ls_imprvC = []
     for samp in range(n_samples):
-        #sample = data_matrix[np.random.choice(sample_size, size=sample_size, replace=True), :]
-        #print 'Data Matrix Shape before: ', (data_matrix.shape)
-        sample = data_matrix[np.random.choice(sample_size, size=sample_size, replace=True)]
-        #feat = np.delete(sample,[-1],1)
-        feat = sample[:, :-1]
-        df_feat = pd.DataFrame(feat)
+        #sample = data_matrix[np.random.choice(sample_size, size=sample_size, replace=True)]
+        #df = pd.DataFrame(data_matrix, columns=list(data_matrix))
+        #test_matrix = deepcopy(data_matrix)
+        df_feat = data_matrix.drop('remsn', axis=1)
         train_x = np.array(df_feat, dtype=np.float32)
-        train_y = sample[:,-1]
-        df_pred = pd.DataFrame(train_y)
-        train_y = np.array(df_pred, dtype=np.float32)
-        #train_y = np.array(pd.get_dummies(df_pred[0]))
-        print 'Train size', train_y.shape, train_x.shape
-        _, p_valueA, p_valueB, p_valueC = k_fold_validation(network=network, train_x=train_x, train_y=train_y, df_test_set=test_matrix, prediction=to_predict, k=k_folds, epochs=500)
-        ls_p_valuesA.append(p_valueA)
-        ls_p_valuesB.append(p_valueB)
-        ls_p_valuesC.append(p_valueC)
+        #train_y = np.array(np.expand_dims(data_matrix.remsn, axis=1), dtype=np.float32)
+        train_y = np.array(pd.get_dummies(data_matrix.remsn), dtype=np.float32)
 
-    print 'P-ValuesA: ', ls_p_valuesA
-    print '\tAverage of p-valuesA: ', np.average(ls_p_valuesA)
-    print 'P-valuesB: ', ls_p_valuesB
-    print '\tAverage of p-valuesB: ', np.average(ls_p_valuesB)
-    print 'P-valuesC: ', ls_p_valuesC
-    print '\tAverage of p-valuesC: ', np.average(ls_p_valuesC)
+        network.train(epochs=400, train_x=train_x, train_y=train_y, val_x=train_x, val_y=train_y, batch_ratio=1, plot=False)
+        df_x = pd.DataFrame(train_x, columns=list(df_feat))
+        df_y = pd.DataFrame(train_y)
+
+        df_x[list(df_y)] = deepcopy(df_y)
+        test_matrix = deepcopy(df_x)
+
+        print train_x.shape
+        print train_y.shape
+        #feat = sample[:, :-1]
+        #df_feat = pd.DataFrame(feat)
+        #train_x = np.array(df_feat, dtype=np.float32)
+        #train_y = sample[:,-1]
+        #df_pred = pd.DataFrame(train_y)
+        #train_y = np.array(df_pred, dtype=np.float32)
+        #train_y = np.array(pd.get_dummies(df_pred[0]))
+        print '\tTrain size', train_y.shape, train_x.shape
+        _, imprvA, imprvB, imprvC = k_fold_validation(network=network, train_x=train_x, train_y=train_y, df_test_set=test_matrix, prediction=to_predict, k=k_folds, epochs=500)
+        ls_imprvA.append(imprvA)
+        ls_imprvB.append(imprvB)
+        ls_imprvC.append(imprvC)
+
+        #ls_p_valuesA.append(p_valueA)
+        #ls_p_valuesB.append(p_valueB)
+        #ls_p_valuesC.append(p_valueC)
+        #print '************ P VALUES ***************************'
+        #print '****************************************'
+        #print ls_p_valuesA, np.average(ls_p_valuesA)
+        #print ls_p_valuesB, np.average(ls_p_valuesB)
+        #print ls_p_valuesC, np.average(ls_p_valuesC)
+        #print '*********************************************'
+        #print '************************ PVALUES ******************'
+        #with open('allPvals.txt', 'w') as pValFile:
+        #    pValFile.write(str(ls_p_valuesA))
+        #    pValFile.write(str(ls_p_valuesB))
+        #    pValFile.write(str(ls_p_valuesC))
+        #    pValFile.close()
+
+    #print 'P-ValuesA: ', ls_p_valuesA
+    #print '\tAverage of p-valuesA: ', np.average(ls_p_valuesA)
+    #print 'P-valuesB: ', ls_p_valuesB
+    #print '\tAverage of p-valuesB: ', np.average(ls_p_valuesB)
+    #print 'P-valuesC: ', ls_p_valuesC
+    #print '\tAverage of p-valuesC: ', np.average(ls_p_valuesC)
+
+    print '************* A ********************'
+    imprv_scorea_tot = float(len(ls_imprvA))
+    imprvA_score_above0 = 0.0
+    imprvA_score_below0 = 0.0
+    for val in ls_imprvA:
+        print val
+        if val > 0.0:
+            imprvA_score_above0 += 1
+        else:
+            imprvA_score_below0 += 1
+
+    p_valueA = float(imprvA_score_below0 / imprv_scorea_tot)
+
+    print '\n********** B ******************'
+    imprv_scoreb_tot = float(len(ls_imprvB))
+    imprvB_score_above0 = 0.0
+    imprvB_score_below0 = 0.0
+    for val in ls_imprvB:
+        print val
+        if val > 1.0:
+            imprvB_score_above0 += 1
+        else:
+            imprvB_score_below0 += 1
+
+    p_valueB = float(imprvB_score_below0 / imprv_scoreb_tot)
+
+    print '\n*********************** C **********************'
+    imprv_scorec_tot = float(len(ls_imprvC))
+    imprvC_score_above0 = 0.0
+    imprvC_score_below0 = 0.0
+    for val in ls_imprvC:
+        print val
+        if val > 1.0:
+            imprvC_score_above0 += 1
+        else:
+            imprvC_score_below0 += 1
+
+    p_valueC = float(imprvC_score_below0 / imprv_scorec_tot)
+
+    print p_valueA, p_valueB, p_valueC
     with open('pvalue.txt', 'w') as file:
-        pvalA = str('Equation A: {}'.format(np.average(ls_p_valuesA)))
-        pValB = str('\nEquation B: {}'.format(np.average(ls_p_valuesB)))
-        pValC = str('\nEquation C: {}'.format(np.average(ls_p_valuesC)))
+        pvalA = str('Equation A: {}'.format(np.average(p_valueA)))
+        pValB = str('\nEquation B: {}'.format(np.average(p_valueB)))
+        pValC = str('\nEquation C: {}'.format(np.average(p_valueC)))
         outputPval = pvalA + pValB + pValC
         file.write(outputPval)
