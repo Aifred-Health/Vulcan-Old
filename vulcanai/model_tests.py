@@ -203,7 +203,7 @@ def run_test(network, test_x, test_y, figure_path='figures', plot=True):
     }
 
 
-def k_fold_validation(network, train_x, train_y, df_test_set, prediction, k=5, epochs=10,
+def k_fold_validation(network, train_x, train_y, df_test_set, prediction, num_samp, k=5, epochs=10,
                       batch_ratio=1.0, plot=False):
     """
     Conduct k fold cross validation on a network.
@@ -238,7 +238,7 @@ def k_fold_validation(network, train_x, train_y, df_test_set, prediction, k=5, e
     print 'Second features', train_x.shape, train_y.shape
     for i in range(k):
         print '********** CURRENT FOLD *******************'
-        print '\n', i
+        print('\n Fold {k} for sample {samp} '.format(k=num_samp, samp=i))
         print '\n*****************************************'
         val_x = train_x[i * chunk_size:(i + 1) * chunk_size]
         val_y = train_y[i * chunk_size:(i + 1) * chunk_size]
@@ -252,16 +252,12 @@ def k_fold_validation(network, train_x, train_y, df_test_set, prediction, k=5, e
             axis=0
         )
         test_set = np.hstack((val_x, val_y))
-        df_test_set_feat = df_test_set.drop([0,1], axis=1)
+        df_test_set_feat = df_test_set.drop('remsn', axis=1)
         df_x = pd.DataFrame(val_x, columns=list(df_test_set_feat))
         df_y = pd.DataFrame(val_y)
         df = deepcopy(df_x)
         df[list(df_y)] = deepcopy(df_y)
-        df_test_set = pd.DataFrame(test_set, columns=list(df))
-        #df_pred = pd.DataFrame(tra_y)
-        #tra_y = np.array(pd.get_dummies((df_pred[0])), dtype=np.float32)
-        #val_y = pd.DataFrame(val_y)
-        #val_y = np.array((pd.get_dummies(val_y[0])), dtype=np.float32)
+        df_test_samp_set = pd.DataFrame(test_set, columns=list(df))
         print tra_x.shape
         print tra_y.shape
         print val_x.shape
@@ -280,20 +276,20 @@ def k_fold_validation(network, train_x, train_y, df_test_set, prediction, k=5, e
         net = deepcopy(network)
         net.train(
             epochs=epochs,
-            train_x=train_x,
-            train_y=train_y,
+            train_x=tra_x,
+            train_y=tra_y,
             val_x=val_x,
             val_y=val_y,
             batch_ratio=0.1,
             plot=plot
         )
-        import pudb;
-        pu.db
+        #import pudb;
+        #pu.db
         #foldScore = calculate_improvement_score(network=network, df_test=df_test_set, val_x=val_x, val_y=val_y, prediction=prediction)
         ##calculate_imp score will return dictionary
         #dct_foldScore = calculate_improvement_score(network=net, df_base_target=df_test_set, prediction=prediction)
-        df_testAns = deepcopy(df_test_set)
-        dct_scores = get_remission_probs(net, df_test_set)
+        df_testAns = deepcopy(df_test_samp_set)
+        dct_scores = get_remission_probs(net, df_test_samp_set)
         dct_filtered = filter_matched_medications(dct_scores, df_testAns)
         for val in dct_filtered.keys():
             dct_filteredSubj[val].append(dct_filtered[val])
@@ -596,7 +592,8 @@ def bootfold_p_estimate(network, data_matrix, test_matrix, to_predict, n_samples
         n_samples: how many bootstrap sampls to generate
         k_folds: how many cross validated folds per bootstrap sample
     """
-    #data_matrix = np.array(data_matrix, dtype=np.float32)
+    test_matrix = deepcopy(data_matrix)
+    data_matrix = np.array(data_matrix, dtype=np.float32)
     #print data_matrix.shape
     #sample_size = data_matrix.shape[0]
     #ls_p_valuesA = []
@@ -605,33 +602,21 @@ def bootfold_p_estimate(network, data_matrix, test_matrix, to_predict, n_samples
     ls_imprvA = []
     ls_imprvB = []
     ls_imprvC = []
+    print data_matrix
     for samp in range(n_samples):
+        np.take(data_matrix, np.random.permutation(data_matrix.shape[0]), axis=0, out=data_matrix)
+        sample = deepcopy(data_matrix)
+        print sample
         #sample = data_matrix[np.random.choice(sample_size, size=sample_size, replace=True)]
-        #df = pd.DataFrame(data_matrix, columns=list(data_matrix))
-        #test_matrix = deepcopy(data_matrix)
-        df_feat = data_matrix.drop('remsn', axis=1)
+        feat = sample[:, :-1]
+        df_feat = pd.DataFrame(feat)
         train_x = np.array(df_feat, dtype=np.float32)
-        #train_y = np.array(np.expand_dims(data_matrix.remsn, axis=1), dtype=np.float32)
-        train_y = np.array(pd.get_dummies(data_matrix.remsn), dtype=np.float32)
-
-        network.train(epochs=400, train_x=train_x, train_y=train_y, val_x=train_x, val_y=train_y, batch_ratio=1, plot=False)
-        df_x = pd.DataFrame(train_x, columns=list(df_feat))
-        df_y = pd.DataFrame(train_y)
-
-        df_x[list(df_y)] = deepcopy(df_y)
-        test_matrix = deepcopy(df_x)
-
-        print train_x.shape
-        print train_y.shape
-        #feat = sample[:, :-1]
-        #df_feat = pd.DataFrame(feat)
-        #train_x = np.array(df_feat, dtype=np.float32)
-        #train_y = sample[:,-1]
-        #df_pred = pd.DataFrame(train_y)
+        train_y = sample[:,-1]
+        df_pred = pd.DataFrame(train_y)
         #train_y = np.array(df_pred, dtype=np.float32)
-        #train_y = np.array(pd.get_dummies(df_pred[0]))
+        train_y = np.array(pd.get_dummies(df_pred[0]))
         print '\tTrain size', train_y.shape, train_x.shape
-        _, imprvA, imprvB, imprvC = k_fold_validation(network=network, train_x=train_x, train_y=train_y, df_test_set=test_matrix, prediction=to_predict, k=k_folds, epochs=500)
+        _, imprvA, imprvB, imprvC = k_fold_validation(network=network, train_x=train_x, train_y=train_y, df_test_set=test_matrix, prediction=to_predict, num_samp=samp, k=k_folds, epochs=250)
         ls_imprvA.append(imprvA)
         ls_imprvB.append(imprvB)
         ls_imprvC.append(imprvC)
@@ -666,9 +651,9 @@ def bootfold_p_estimate(network, data_matrix, test_matrix, to_predict, n_samples
     for val in ls_imprvA:
         print val
         if val > 0.0:
-            imprvA_score_above0 += 1
+            imprvA_score_above0 += 1.0
         else:
-            imprvA_score_below0 += 1
+            imprvA_score_below0 += 1.0
 
     p_valueA = float(imprvA_score_below0 / imprv_scorea_tot)
 
@@ -679,9 +664,9 @@ def bootfold_p_estimate(network, data_matrix, test_matrix, to_predict, n_samples
     for val in ls_imprvB:
         print val
         if val > 1.0:
-            imprvB_score_above0 += 1
+            imprvB_score_above0 += 1.0
         else:
-            imprvB_score_below0 += 1
+            imprvB_score_below0 += 1.0
 
     p_valueB = float(imprvB_score_below0 / imprv_scoreb_tot)
 
@@ -692,9 +677,9 @@ def bootfold_p_estimate(network, data_matrix, test_matrix, to_predict, n_samples
     for val in ls_imprvC:
         print val
         if val > 1.0:
-            imprvC_score_above0 += 1
+            imprvC_score_above0 += 1.0
         else:
-            imprvC_score_below0 += 1
+            imprvC_score_below0 += 1.0
 
     p_valueC = float(imprvC_score_below0 / imprv_scorec_tot)
 
