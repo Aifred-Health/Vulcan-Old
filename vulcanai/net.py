@@ -409,6 +409,13 @@ class Network(object):
         print("Using Mean Squared error loss")
         return lasagne.objectives.squared_error(prediction, y).mean()
 
+    def sensitive_cost(self, prediction, y):
+        print("Using Sensitive Cost Function")
+        sum_fn = np.sum(np.logical_and(prediction[:, 0] == 0, y[:,0] == 1))
+        loss = sum_fn**5 + self.cross_entropy_loss(prediction, y)
+
+        return loss
+
     def create_trainer(self):
         """
         Generate a theano function to train the network.
@@ -434,7 +441,8 @@ class Network(object):
             if self.num_classes is None or self.num_classes == 0:
                 self.cost = self.mse_loss(out, self.y)
             else:
-                self.cost = self.cross_entropy_loss(out, self.y)
+                # self.cost = self.cross_entropy_loss(out, self.y)
+                self.cost = self.sensitive_cost(out, self.y)
 
         # calculate updates using ADAM optimization gradient descent
         learning_rate_var = T.scalar(name='learning_rate')
@@ -482,7 +490,9 @@ class Network(object):
                 self.val_cost = self.mse_loss(val_prediction, self.y)
                 val_acc = T.constant(0)
             else:
-                self.val_cost = self.cross_entropy_loss(val_prediction, self.y)
+                # self.val_cost = self.cross_entropy_loss(val_prediction, self.y)
+                self.val_cost = self.sensitive_cost(val_prediction, self.y)
+
                 # check the accuracy of the prediction
                 if self.num_classes > 1:
                     val_acc = T.mean(T.eq(T.argmax(val_prediction, axis=1),

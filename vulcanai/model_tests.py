@@ -3,6 +3,8 @@ import os
 
 import numpy as np
 
+import pandas as pd
+
 from utils import get_class
 from utils import get_confusion_matrix
 from utils import round_list
@@ -187,18 +189,18 @@ def run_test(network, test_x, test_y, figure_path='figures', plot=True):
     print ('Average AUC: : {:.4f}'.format(np.average(all_class_auc)))
     return {
         'accuracy': accuracy,
-        'macro_sensitivity': sens_macro,
-        'macro_specificity': spec_macro,
+        'sensitivity': sens[0],
+        'specificity': spec[0],
         'avg_dice': np.average(dice),
-        'macro_ppv': ppv_macro,
-        'macro_npv': npv_macro,
-        'macro_f1': f1_macro,
-        'macro_auc': np.average(all_class_auc)
+        'ppv': ppv[0],
+        'npv': npv[0],
+        'f1': f1[0],
+        'auc': np.average(all_class_auc)
     }
 
 
 def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
-                      batch_ratio=1.0, plot=False):
+                      batch_ratio=1.0, plot=False, extra_x=None, extra_y=None):
     """
     Conduct k fold cross validation on a network.
 
@@ -220,8 +222,11 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
     results = []
     timestamp = get_timestamp()
     for i in range(k):
-        val_x = train_x[i * chunk_size:(i + 1) * chunk_size]
-        val_y = train_y[i * chunk_size:(i + 1) * chunk_size]
+        print("***********")
+        print("Fold " + str(i+1) + " of " + str(k))
+        print("***********")
+        val_x = np.vstack((train_x[i * chunk_size:(i + 1) * chunk_size], extra_x))
+        val_y = np.vstack((train_y[i * chunk_size:(i + 1) * chunk_size], extra_y))
         tra_x = np.concatenate(
             (train_x[:i * chunk_size], train_x[(i + 1) * chunk_size:]),
             axis=0
@@ -247,6 +252,7 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
             figure_path='figures/kfold_{}{}'.format(timestamp, network.name),
             plot=plot))]
         del net
+
     aggregate_results = reduce(lambda x, y: x + y, results)
 
     print ('\nFinal Cross validated results')

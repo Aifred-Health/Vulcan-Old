@@ -21,6 +21,12 @@ from sklearn.preprocessing import LabelBinarizer
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 
+import copy as copy
+
+from copy import deepcopy
+
+from sklearn import metrics
+
 import matplotlib
 
 if os.name is not "posix":
@@ -121,6 +127,8 @@ def display_receptive_fields(network, layer_list=None, top_k=5):
     # Get fields for filtered layers
     feature_importance = {}
     fig = plt.figure()
+
+    #import pudb; pu.db
     for i, l in enumerate(layers):
         raw_field = l.W.container.storage[0]
         field = np.average(raw_field, axis=1)  # average all outgoing
@@ -130,9 +138,9 @@ def display_receptive_fields(network, layer_list=None, top_k=5):
                         i + 1)
         feats = get_notable_indices(abs(field), top_k=top_k)
         feature_importance.update({'{}'.format(l.name): feats})
-        plt.title(l.name)
-        plt.imshow(np.reshape(abs(field), field_shape), cmap='hot_r')
-        plt.colorbar()
+        # plt.title(l.name)
+        # plt.imshow(np.reshape(abs(field), field_shape), cmap='hot_r')
+        # plt.colorbar()
     plt.show(False)
     return feature_importance
 
@@ -145,8 +153,11 @@ def get_notable_indices(matrix, top_k=5):
         matrix: 1d numpy array
         top_k: defaults to top and bottom 5 indices
     """
+    print(matrix.shape)
     important_features = matrix.argsort()[-top_k:][::-1]
+    print(important_features)
     unimportant_features = matrix.argsort()[:-1][:top_k]
+    print(unimportant_features)
     return {'important_indices': important_features,
             'unimportant_indices': unimportant_features}
 
@@ -419,3 +430,163 @@ def stitch_datasets(df_list, on, index_list=None):
     merged_df.fillna(0, inplace=True)
 
     return merged_df
+
+
+def feature_directionality(features, data, val_x, val_y, dense_net, filename):
+    """
+    Will conduct tests to figure out directionality of features by finding all the unique feature values present in the
+    dataset and setting the feature for all examples to every unique value of that feature.
+
+    Args:
+        features: list of all features in the model
+        data: dataframe with the data, features, y values
+        val_x: the features of the examples in the validation set
+        vay_y: the labels of the examples in the validation set
+        filename: the name of the file to save the test results to
+    """
+    test_df = None
+    for j in range(len(features)):
+        feature_val_list = data[features[j]]
+        unique_feature_values = list(np.unique(feature_val_list))
+        val_x_temp = copy.deepcopy(val_x)
+        for i in range(len(unique_feature_values)):
+            val_x_temp[:, j] = unique_feature_values[i]
+            print("***************************")
+            print("Testing value " + str(unique_feature_values[i]) + " for feature " + str(features[j]))
+            test_df = run_and_save_test(network=dense_net, test_x=val_x_temp, test_y=val_y, test_df=test_df,
+                                        feature=features[j], value=unique_feature_values[i])
+    test_df.to_csv(filename + ".csv")
+
+
+def run_and_save_test(network, test_x, test_y, test_df, feature, value):
+    """
+    Will conduct the test suite to determine model strength and return an updated dataframe test results.
+
+    Args:
+        test_x: data the model has not yet seen to predict
+        test_y: corresponding truth vectors
+        test_df: dataframe with aggregated test results
+        feature: the feature that is being variesd
+        value: value of the feature that is being tested
+    """
+
+    temp_df = pd.DataFrame(columns=["Feature", "Value", "TP", "FP", "TN", "FN",
+                                        "Accuracy", "Sensitivity", "Specificity", "PPV",
+                                        "NPV", "AUC"])
+
+    if network.num_classes is None or network.num_classes == 0:
+        raise ValueError('There\'s no classification layer')
+
+    if test_y.shape[1] > 1:
+        test_y = get_class(test_y)  # Y is in one hot representation
+
+    raw_prediction = network.forward_pass(input_data=test_x,
+                                          convert_to_class=False)
+    class_prediction = get_class(raw_prediction)
+
+    confusion_matrix = get_confusion_matrix(
+        prediction=class_prediction,
+        truth=test_y
+    )
+
+    tp = np.diagonal(confusion_matrix).astype('float32')
+    tn = (np.array([np.sum(confusion_matrix)] *
+                   confusion_matrix.shape[0]) -
+          confusion_matrix.sum(axis=0) -
+          confusion_matrix.sum(axis=1) + tp).astype('float32')
+    # sum each column and remove diagonal
+    fp = (confusion_matrix.sum(axis=0) - tp).astype('float32')
+    # sum each row and remove diagonal
+    fn = (confusion_matrix.sum(axis=1) - tp).astype('float32')
+
+    sens = np.nan_to_num(tp / (tp + fn))  # recall
+    spec = np.nan_to_num(tn / (tn + fp))
+    dice = 2 * tp / (2 * tp + fp + fn)
+    ppv = np.nan_to_num(tp / (tp + fp))  # precision
+    npv = np.nan_to_num(tn / (tn + fn))
+    accuracy = np.sum(tp) / np.sum(confusion_matrix)
+    f1 = np.nan_to_num(2 * (ppv * sens) / (ppv + sens))
+
+    print ('{} test\'s results'.format(network.name))
+
+    print ('TP:'),
+    print (tp)
+
+
+    print ('FP:'),
+    print (fp)
+
+
+    print ('TN:'),
+    print (tn)
+
+
+    print ('FN:'),
+    print (fn)
+
+
+    print ('\nAccuracy: {}'.format(accuracy))
+    temp_df["Accuracy"] = [accuracy]
+
+    print ('Sensitivity:'),
+    print(round_list(sens, decimals=3))
+
+
+    print ('Specificity:'),
+    print(round_list(spec, decimals=3))
+
+
+    print ('DICE:'),
+    print(round_list(dice, decimals=3))
+    print ('\tAvg. DICE: {:.4f}'.format(np.average(dice)))
+
+    print ('Positive Predictive Value:'),
+    print(round_list(ppv, decimals=3))
+
+
+    print ('Negative Predictive Value:'),
+    print(round_list(npv, decimals=3))
+
+
+    print ('f1-score:'),
+    print(round_list(f1, decimals=3))
+
+    all_class_auc = []
+    for i in range(network.num_classes):
+        if network.num_classes == 1:
+            fpr, tpr, thresholds = metrics.roc_curve(test_y,
+                                                     raw_prediction,
+                                                     pos_label=1)
+        else:
+            fpr, tpr, thresholds = metrics.roc_curve(test_y,
+                                                     raw_prediction[:, i],
+                                                     pos_label=i)
+
+        auc = metrics.auc(fpr, tpr)
+        all_class_auc += [auc]
+
+    print ('Average AUC: : {:.4f}'.format(np.average(all_class_auc)))
+
+
+    if test_df is None:
+        test_df = pd.DataFrame(columns=["Feature", "Value", "TP", "FP", "TN", "FN",
+                                        "Accuracy", "Sensitivity", "Specificity", "PPV",
+                                        "NPV", "AUC"])
+
+    temp_df["Feature"] = [feature]
+    temp_df["Value"] = [value]
+    temp_df["AUC"] = [np.average(all_class_auc)]
+    temp_df["NPV"] = [npv[0]]
+    temp_df["PPV"] = [ppv[0]]
+    temp_df["Specificity"] = [spec[0]]
+    temp_df["Sensitivity"] = [sens[0]]
+    temp_df["FN"] = [fn[0]]
+    temp_df["TN"] = [tn[0]]
+    temp_df["FP"] = [fp[0]]
+    temp_df["TP"] = [tp[0]]
+
+    frames = [test_df, temp_df]
+    combined_df = pd.concat(frames)
+
+    return combined_df
+
