@@ -15,7 +15,7 @@ from sklearn import metrics
 
 from copy import deepcopy
 
-from collections import Counter
+from collections import Counter, OrderedDict
 
 import matplotlib
 if os.name is not "posix":
@@ -187,16 +187,27 @@ def run_test(network, test_x, test_y, figure_path='figures', plot=True):
     if not plot:
         plt.close(fig.number)
     print ('Average AUC: : {:.4f}'.format(np.average(all_class_auc)))
-    return {
-        'accuracy': accuracy,
-        'sensitivity': sens[0],
-        'specificity': spec[0],
-        'avg_dice': np.average(dice),
-        'ppv': ppv[0],
-        'npv': npv[0],
-        'f1': f1[0],
-        'auc': np.average(all_class_auc)
-    }
+
+    sens_by_class = {}
+    spec_by_class = {}
+    ppv_by_class = {}
+    npv_by_class = {}
+    f1_by_class = {}
+    for j in range(len(sens)):
+        sens_by_class["sens_class_" + str(j)] = sens[j]
+        spec_by_class["spec_class_" + str(j)] = spec[j]
+        ppv_by_class["ppv_class_" + str(j)] = ppv[j]
+        npv_by_class["npv_class_" + str(j)] = npv[j]
+        f1_by_class["f1_class_" + str(j)] = f1[j]
+
+    final_dict = {"accuracy": accuracy, "avg_dice": np.average(dice), 'auc': np.average(all_class_auc)}
+    final_dict.update(sens_by_class)
+    final_dict.update(spec_by_class)
+    final_dict.update(ppv_by_class)
+    final_dict.update(npv_by_class)
+    final_dict.update(f1_by_class)
+
+    return final_dict
 
 
 def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
@@ -245,20 +256,26 @@ def k_fold_validation(network, train_x, train_y, k=5, epochs=10,
             batch_ratio=batch_ratio,
             plot=plot
         )
-        results += [Counter(run_test(
+
+        results += [run_test(
             net,
             val_x,
             val_y,
             figure_path='figures/kfold_{}{}'.format(timestamp, network.name),
-            plot=plot))]
+            plot=plot)]
         del net
 
-    aggregate_results = reduce(lambda x, y: x + y, results)
+    aggregate_results = Counter()
+    for d in results:
+        aggregate_results.update(d)
+
+    aggregate_results = OrderedDict(sorted(dict(aggregate_results).items()))
 
     print ('\nFinal Cross validated results')
     print ('-----------------------------')
     for metric_key in aggregate_results.keys():
         aggregate_results[metric_key] /= float(k)
         print ('{}: {:.4f}'.format(metric_key, aggregate_results[metric_key]))
+
 
     return aggregate_results
