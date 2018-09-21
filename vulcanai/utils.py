@@ -432,7 +432,7 @@ def stitch_datasets(df_list, on, index_list=None):
     return merged_df
 
 
-def feature_directionality(features, data, val_x, val_y, dense_net, filename):
+def feature_directionality(network, data, val_x, val_y, filename, cutoff=20):
     """
     Will conduct tests to figure out directionality of features by finding all the unique feature values present in the
     dataset and setting the feature for all examples to every unique value of that feature.
@@ -443,17 +443,25 @@ def feature_directionality(features, data, val_x, val_y, dense_net, filename):
         val_x: the features of the examples in the validation set
         vay_y: the labels of the examples in the validation set
         filename: the name of the file to save the test results to
+        cutoff: maximum number of unique features for a particular feature that will be tested
     """
+    features = list(data)
     test_df = None
+    results = []
     for j in range(len(features)):
         feature_val_list = data[features[j]]
         unique_feature_values = list(np.unique(feature_val_list))
+        if len(unique_feature_values) > cutoff:
+            print("================================")
+            print("Cutting off number of features to be tested for feature " + str(features[j]))
+            print("================================")
+            unique_feature_values = unique_feature_values[0::(len(unique_feature_values)/cutoff)]
         val_x_temp = copy.deepcopy(val_x)
         for i in range(len(unique_feature_values)):
             val_x_temp[:, j] = unique_feature_values[i]
             print("***************************")
             print("Testing value " + str(unique_feature_values[i]) + " for feature " + str(features[j]))
-            test_df = run_and_save_test(network=dense_net, test_x=val_x_temp, test_y=val_y, test_df=test_df,
+            test_df = run_and_save_test(network=network, test_x=val_x_temp, test_y=val_y, test_df=test_df,
                                         feature=features[j], value=unique_feature_values[i])
     test_df.to_csv(filename + ".csv")
 
@@ -470,7 +478,7 @@ def run_and_save_test(network, test_x, test_y, test_df, feature, value):
         value: value of the feature that is being tested
     """
 
-    temp_df = pd.DataFrame(columns=["Feature", "Value", "TP", "FP", "TN", "FN",
+    temp_df = pd.DataFrame(columns=["Feature", "Value", "Number of examples classified as yes", "TP", "FP", "TN", "FN",
                                         "Accuracy", "Sensitivity", "Specificity", "PPV",
                                         "NPV", "AUC"])
 
@@ -569,7 +577,7 @@ def run_and_save_test(network, test_x, test_y, test_df, feature, value):
 
 
     if test_df is None:
-        test_df = pd.DataFrame(columns=["Feature", "Value", "TP", "FP", "TN", "FN",
+        test_df = pd.DataFrame(columns=["Feature", "Value", "Number of examples classified as yes","TP", "FP", "TN", "FN",
                                         "Accuracy", "Sensitivity", "Specificity", "PPV",
                                         "NPV", "AUC"])
 
@@ -584,6 +592,7 @@ def run_and_save_test(network, test_x, test_y, test_df, feature, value):
     temp_df["TN"] = [tn[0]]
     temp_df["FP"] = [fp[0]]
     temp_df["TP"] = [tp[0]]
+    temp_df["Number of examples classified as yes"] = [tp[0] + fp[0]]
 
     frames = [test_df, temp_df]
     combined_df = pd.concat(frames)

@@ -412,6 +412,7 @@ class Network(object):
     def sensitive_cost(self, prediction, y):
         print("Using Sensitive Cost Function")
         sum_fn = np.sum(np.logical_and(prediction[:, 0] == 0, y[:,0] == 1))
+        sum_fp = np.sum(np.logical_and(prediction[:, 1] == 0, y[:,1] == 1))
         loss = sum_fn**5 + self.cross_entropy_loss(prediction, y)
 
         return loss
