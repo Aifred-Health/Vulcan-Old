@@ -21,6 +21,8 @@ from sklearn.preprocessing import LabelBinarizer
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 
+# from vulcanai.model_tests import run_test
+
 import copy as copy
 
 from copy import deepcopy
@@ -447,25 +449,44 @@ def feature_directionality(network, data, val_x, val_y, filename, cutoff=20):
     """
     features = list(data)
     test_df = None
-    for j in range(len(features)):
-        feature_val_list = data[features[j]]
+    for feature in range(len(features)):
+        feature_val_list = data[features[feature]]
         unique_feature_values = list(np.unique(feature_val_list))
         if len(unique_feature_values) > cutoff:
             print("================================")
-            print("Cutting off number of features to be tested for feature " + str(features[j]) + " from " + str(len(unique_feature_values)) + " to " + str(cutoff))
+            print("Cutting off number of features to be tested for feature {} from {} to {}".format(features[feature], len(unique_feature_values), cutoff))
             print("================================")
             unique_feature_values = unique_feature_values[0::(len(unique_feature_values)/cutoff)]
         val_x_temp = copy.deepcopy(val_x)
-        for i in range(len(unique_feature_values)):
-            val_x_temp[:, j] = unique_feature_values[i]
-            print("Testing value " + str(unique_feature_values[i]) + " for feature " + str(features[j]))
-            test_df = classification_by_feature_value(network=network, test_x=val_x_temp, test_y=val_y, test_df=test_df,
-                                        feature=features[j], value=unique_feature_values[i])
+        for feature_value in range(len(unique_feature_values)):
+            val_x_temp[:, feature] = unique_feature_values[feature_value]
+            print("Testing value {} for feature {}".format(unique_feature_values[feature_value], features[feature]))
+            test_results = classification_by_feature_value(network=network, test_x=val_x_temp, test_y=val_y)
+            num_classes = []
+            for i in range(len(test_results["tp"])):
+                num_classes.append("Number of examples classified as class " + str(i))
+
+            temp_df_cols = ["Feature", "Value"] + num_classes
+
+            if test_df is None:
+                test_df = pd.DataFrame(columns=temp_df_cols)
+
+            temp_df = pd.DataFrame(columns=temp_df_cols)
+
+            temp_df["Feature"] = [features[feature]]
+            temp_df["Value"] = [unique_feature_values[feature_value]]
+
+            for i in range(len(test_results["tp"])):
+                temp_df["Number of examples classified as class " + str(i)] = [test_results["tp"][i] + test_results["fp"][i]]
+
+            frames = [test_df, temp_df]
+            test_df = pd.concat(frames)
         print("***************************")
-    test_df.to_csv(filename + ".csv")
+    test_df.to_csv("{}.csv".format(filename))
+    return test_df
 
 
-def classification_by_feature_value(network, test_x, test_y, test_df, feature, value):
+def classification_by_feature_value(network, test_x, test_y):
     """
     Will conduct the test suite to determine model strength and return an updated dataframe test results.
 
@@ -492,28 +513,8 @@ def classification_by_feature_value(network, test_x, test_y, test_df, feature, v
         truth=test_y
     )
 
-    num_classes = []
-    for i in range(raw_prediction.shape[1]):
-        num_classes.append("Number of examples classified as class " + str(i))
-
-    temp_df_cols = ["Feature", "Value"] + num_classes
-
-    temp_df = pd.DataFrame(columns=temp_df_cols)
-
     tp = np.diagonal(confusion_matrix).astype('float32')
     fp = (confusion_matrix.sum(axis=0) - tp).astype('float32')
 
-    if test_df is None:
-        test_df = pd.DataFrame(columns=temp_df_cols)
-
-    temp_df["Feature"] = [feature]
-    temp_df["Value"] = [value]
-
-    for i in range(raw_prediction.shape[1]):
-        temp_df["Number of examples classified as class " + str(i)] = [tp[i] + fp[i]]
-
-    frames = [test_df, temp_df]
-    combined_df = pd.concat(frames)
-
-    return combined_df
+    return {"tp": tp, "fp": fp}
 
